@@ -1,0 +1,20 @@
+﻿@using Microsoft.AspNetCore.Mvc.TagHelpers;
+@model PromoLimit.Views.Auth.LoginViewModel;
+@{
+    ViewData["Title"] = "Login em PromoLimit";
+}
+
+<div class="text-center">
+    <h4 class="display-4">Login em PromoLimit</h4>
+	<form method="POST">
+		<div>
+			<input asp-for="Username" required autofocus/>
+			<label>Login:</label>
+		</div>
+		<div>
+			<input asp-for="Password" required type="password"/>
+			<label>Senha: </label>
+		</div>
+		<button type="submit">Login</button>
+	</form>
+</div>
