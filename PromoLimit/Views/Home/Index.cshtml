@@ -55,7 +55,7 @@
 		<div class="divTable">
 			<div class="divTableBody" id="tableBod">
 				<div class="divTableRow">
-					<div class="divTableHead">ID</div>
+					<div class="divTableHead">Seller</div>
 					<div class="divTableHead">MLB</div>
 					<div class="divTableHead">Descrição</div>
 					<div class="divTableHead">Qtd</div>
@@ -65,7 +65,7 @@
 			@foreach (Produto modelProduto in Model.Produtos)
 			{
 				<div class="divTableRow" id="@($"row{modelProduto.Id}")">
-					<div class="divTableCell" id="@($"rowId{modelProduto.Id}")">@modelProduto.Id</div>
+					<div class="divTableCell" id="@($"rowId{modelProduto.Id}")">@(Model.MlInfos.First(x=>x.UserId == modelProduto.Seller).Vendedor)</div>
 					<div class="divTableCell" id="@($"rowMlb{modelProduto.Id}")">@modelProduto.MLB</div>
 					<div class="divTableCell" id="@($"rowDes{modelProduto.Id}")">@modelProduto.Descricao</div>
 					<div class="divTableCell" id="@($"rowQtd{modelProduto.Id}")">@modelProduto.QuantidadeAVenda</div>

@@ -2,6 +2,7 @@
 using PromoLimit.Models;
 using System.Diagnostics;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using PromoLimit.DbContext;
@@ -16,7 +17,6 @@ namespace PromoLimit.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly SessionService _sessionService;
         private readonly UserDataService _userDataService;
-        private readonly RestClient _client;
         private readonly MlInfoDataService _mlInfoDataService;
         private readonly ProdutoDataService _produtoDataService;
         private readonly MlApiService _mlApiService;
@@ -27,7 +27,6 @@ namespace PromoLimit.Controllers
             _sessionService = provider.GetRequiredService<SessionService>();
             _userDataService = provider.GetRequiredService<UserDataService>();
             _mlInfoDataService = provider.GetRequiredService<MlInfoDataService>();
-            _client = new RestClient("https://api.mercadolibre.com");
             _produtoDataService = provider.GetRequiredService<ProdutoDataService>();
             _mlApiService = provider.GetRequiredService<MlApiService>();
         }
@@ -41,6 +40,7 @@ namespace PromoLimit.Controllers
 
             IndexViewModel ivm = new();
             ivm.Produtos = await _produtoDataService.GetAllProdutos();
+            ivm.MlInfos = await _mlInfoDataService.GetAll();
             if (TempData["Error"] is not null)
             {
                 ivm.ErrorMessage = (string)TempData["Error"];
@@ -56,6 +56,13 @@ namespace PromoLimit.Controllers
             public bool Ativo { get; set; }
             public string? Descricao { get; set; }
             public int? Estoque { get; set; }
+            public int? Seller { get; set; }
+        }
+
+        [HttpGet]
+        public async Task<SelectListItem[]> GetSellers()
+        {
+            return (await _mlInfoDataService.GetAll()).Select(x => new SelectListItem() {Value = x.UserId.ToString(), Text = x.Vendedor}).ToArray();
         }
 
         [HttpPost]
@@ -79,7 +86,8 @@ namespace PromoLimit.Controllers
                         Id = produto.Id ?? 0,
                         MLB = produto.MLB,
                         QuantidadeAVenda = int.Parse(produto.QuantidadeAVenda),
-                        Estoque = produto.Estoque ?? 0
+                        Estoque = produto.Estoque ?? 0,
+                        Seller = (int?)produto.Seller ?? 0
                     };
                     aGravar = await _produtoDataService.AddOrUpdate(aGravar);
                     return Json(new { success= true });
@@ -99,29 +107,31 @@ namespace PromoLimit.Controllers
         {
             if (!String.IsNullOrWhiteSpace(code))
             {
-                RestRequest request = new RestRequest("oauth/token").AddJsonBody(
-                    new
-                    {
-                        grant_type = "authorization_code",
-                        client_id = "5728494926210323",
-                        client_secret = "8FipsohX5nBunPKnymueFoxjYOCaCXmx",
-                        code,
-                        redirect_uri = "https://promolimit.azurewebsites.net/Home/MlRedirect"
-                    }
-                    );
+                var tokenXChange = await _mlApiService.XChangeCodeForToken(code);
 
-                var response = await _client.ExecutePostAsync<TokenAuthResponse>(request);
-                if (!response.IsSuccessful && response.Data is not null)
+
+                if (!tokenXChange.Item1 || tokenXChange.Item2 is null)
                 {
                     throw new Exception("Response was not successful");
                 }
                 else
                 {
-                    await _mlInfoDataService.AddOrUpdateMlInfo(new()
+                    try
                     {
-                        AccessToken = response.Data!.AccessToken, RefreshToken = response.Data.RefreshToken, UserId = response.Data.UserId
+                        var userInfo = await _mlApiService.GetSellerName(tokenXChange.Item2.UserId);
+
+                        await _mlInfoDataService.AddOrUpdateMlInfo(new()
+                            {
+                                AccessToken = tokenXChange.Item2.AccessToken, RefreshToken = tokenXChange.Item2.RefreshToken, UserId = tokenXChange.Item2.UserId, Vendedor = userInfo.Item2
+                            }
+                        );
                     }
-                    );
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        throw;
+                    }
+                   
                 }
 
                 return RedirectToAction("Index");

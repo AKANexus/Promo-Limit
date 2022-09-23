@@ -2,7 +2,7 @@
 
 namespace PromoLimit.Models
 {
-// Root myDeserializedClass = JsonSerializer.Deserialize<List<Root>>(myJsonResponse);
+// Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
     public class Attribute
     {
         [JsonPropertyName("id")]
@@ -18,7 +18,7 @@ namespace PromoLimit.Models
         public string ValueName { get; set; }
 
         [JsonPropertyName("value_struct")]
-        public ValueStruct ValueStruct { get; set; }
+        public object ValueStruct { get; set; }
 
         [JsonPropertyName("values")]
         public List<Value> Values { get; set; }
@@ -51,15 +51,65 @@ namespace PromoLimit.Models
         public List<Value> Values { get; set; }
     }
 
+    public class City
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+    }
+
+    public class Country
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+    }
+
+    public class Location
+    {
+    }
+
+    public class Neighborhood
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+    }
+
+    public class Picture
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; }
+
+        [JsonPropertyName("secure_url")]
+        public string SecureUrl { get; set; }
+
+        [JsonPropertyName("size")]
+        public string Size { get; set; }
+
+        [JsonPropertyName("max_size")]
+        public string MaxSize { get; set; }
+
+        [JsonPropertyName("quality")]
+        public string Quality { get; set; }
+    }
+
     public class ProdutoBody
     {
-
         [JsonPropertyName("message")]
         public string Message { get; set; }
 
         [JsonPropertyName("error")]
         public string Error { get; set; }
-
         [JsonPropertyName("id")]
         public string Id { get; set; }
 
@@ -82,13 +132,13 @@ namespace PromoLimit.Models
         public object OfficialStoreId { get; set; }
 
         [JsonPropertyName("price")]
-        public int Price { get; set; }
+        public double Price { get; set; }
 
         [JsonPropertyName("base_price")]
-        public int BasePrice { get; set; }
+        public double BasePrice { get; set; }
 
         [JsonPropertyName("original_price")]
-        public object OriginalPrice { get; set; }
+        public double OriginalPrice { get; set; }
 
         [JsonPropertyName("currency_id")]
         public string CurrencyId { get; set; }
@@ -190,7 +240,7 @@ namespace PromoLimit.Models
         public string Warranty { get; set; }
 
         [JsonPropertyName("catalog_product_id")]
-        public string CatalogProductId { get; set; }
+        public object CatalogProductId { get; set; }
 
         [JsonPropertyName("domain_id")]
         public string DomainId { get; set; }
@@ -202,7 +252,7 @@ namespace PromoLimit.Models
         public object DifferentialPricing { get; set; }
 
         [JsonPropertyName("deal_ids")]
-        public List<object> DealIds { get; set; }
+        public List<string> DealIds { get; set; }
 
         [JsonPropertyName("automatic_relist")]
         public bool AutomaticRelist { get; set; }
@@ -221,67 +271,6 @@ namespace PromoLimit.Models
 
         [JsonPropertyName("channels")]
         public List<string> Channels { get; set; }
-    }
-
-    public class City
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; }
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-    }
-
-    public class Country
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; }
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-    }
-
-    public class Location
-    {
-    }
-
-    public class Neighborhood
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; }
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-    }
-
-    public class Picture
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; }
-
-        [JsonPropertyName("url")]
-        public string Url { get; set; }
-
-        [JsonPropertyName("secure_url")]
-        public string SecureUrl { get; set; }
-
-        [JsonPropertyName("size")]
-        public string Size { get; set; }
-
-        [JsonPropertyName("max_size")]
-        public string MaxSize { get; set; }
-
-        [JsonPropertyName("quality")]
-        public string Quality { get; set; }
-    }
-
-    public class MlProduto
-    {
-        [JsonPropertyName("code")]
-        public int Code { get; set; }
-
-        [JsonPropertyName("body")]
-        public ProdutoBody ProdutoBody { get; set; }
     }
 
     public class SaleTerm
@@ -344,7 +333,7 @@ namespace PromoLimit.Models
         public List<object> Methods { get; set; }
 
         [JsonPropertyName("tags")]
-        public List<object> Tags { get; set; }
+        public List<string> Tags { get; set; }
 
         [JsonPropertyName("dimensions")]
         public object Dimensions { get; set; }
@@ -404,10 +393,10 @@ namespace PromoLimit.Models
     public class Variation
     {
         [JsonPropertyName("id")]
-        public long Id { get; set; }
+        public object Id { get; set; }
 
         [JsonPropertyName("price")]
-        public int Price { get; set; }
+        public double Price { get; set; }
 
         [JsonPropertyName("attribute_combinations")]
         public List<AttributeCombination> AttributeCombinations { get; set; }
@@ -425,7 +414,7 @@ namespace PromoLimit.Models
         public List<string> PictureIds { get; set; }
 
         [JsonPropertyName("catalog_product_id")]
-        public string CatalogProductId { get; set; }
+        public object CatalogProductId { get; set; }
     }
 
 

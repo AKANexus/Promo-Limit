@@ -21,7 +21,17 @@ namespace PromoLimit.Services
 
         public async Task<Produto> AddOrUpdate(Produto produto)
         {
-            _context.Produtos.Update(produto);
+            var tentativo = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == produto.Id);
+            if (tentativo == null)
+            {
+                _context.Produtos.Update(produto);
+            }
+            else
+            {
+                tentativo.QuantidadeAVenda = produto.QuantidadeAVenda;
+                tentativo.Estoque = produto.Estoque;
+                _context.Produtos.Update(tentativo);
+            }
             await _context.SaveChangesAsync();
             return produto;
         }
