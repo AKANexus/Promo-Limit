@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PromoLimit.DbContext;
 
@@ -10,9 +11,10 @@ using PromoLimit.DbContext;
 namespace PromoLimit.Migrations
 {
     [DbContext(typeof(PromoLimitDbContext))]
-    partial class PromoLimitDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220923163436_ApiExpiryCol")]
+    partial class ApiExpiryCol
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "6.0.9");
@@ -70,9 +72,6 @@ namespace PromoLimit.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Seller")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("Variacao")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");

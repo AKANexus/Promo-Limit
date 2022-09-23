@@ -2,19 +2,19 @@
     if (newLineOpen === false) {
         let tabela = document.querySelector("#tableBod");
         tabela.innerHTML +=
-            '<div class="divTableRow" id="rowNew"><div class="divTableCell" id="rowNewId"><select id="rowVendedorId"></select></div><div class="divTableCell" id="rowNewMlb"><input id="newMlb"/></div><div class="divTableCell" id="rowNewDes"><input readonly/></div><div class="divTableCell" id="rowNewQtd"><input type="number" id="newQtd"/></div><div class="divTableCell" id="rowNewEst"><input type="number" id="newEst"/></div><div class="divTableCell" id="rowNewAct"><a href="#" onclick="saveNew(null)">Salvar</a></div></div>';
-        let requestOpts = { method: "GET", headers: myHeaders };
-        let get = await fetch(`/Home/GetSellers`, requestOpts);
-        let response = await get.text();
-        debugger;
-        let resposta = JSON.parse(response);
-        let selectElement = document.querySelector("#rowVendedorId");
-        for (var i = 0; i < resposta.length; i++) {
-            let el = document.createElement("option");
-            el.text = resposta[i].text;
-            el.value = resposta[i].value;
-            selectElement.appendChild(el);
-        }
+            '<div class="divTableRow" id="rowNew"><div class="divTableCell" id="rowNewId"><input readonly></div><div class="divTableCell" id="rowNewMlb"><input id="newMlb"/></div><div class="divTableCell" id="rowNewDes"><input readonly/></div><div class="divTableCell" id="rowNewQtd"><input type="number" id="newQtd"/></div><div class="divTableCell" id="rowNewEst"><input type="number" id="newEst"/></div><div class="divTableCell" id="rowNewAct"><a href="#" onclick="saveNew(null)">Salvar</a></div></div>';
+        //let requestOpts = { method: "GET", headers: myHeaders };
+        //let get = await fetch(`/Home/GetSellers`, requestOpts);
+        //let response = await get.text();
+        //debugger;
+        //let resposta = JSON.parse(response);
+        //let selectElement = document.querySelector("#rowVendedorId");
+        //for (var i = 0; i < resposta.length; i++) {
+        //    let el = document.createElement("option");
+        //    el.text = resposta[i].text;
+        //    el.value = resposta[i].value;
+        //    selectElement.appendChild(el);
+        //}
         newLineOpen = true;
     }
 }
@@ -57,7 +57,7 @@ async function saveNew(id) {
     if (id)
         meuBody.Id = id;
     else {
-        meuBody.Seller = document.querySelector("#rowVendedorId").value;
+        //meuBody.Seller = document.querySelector("#rowVendedorId").value;
         meuBody.Id = null;
     }
     meuBody.QuantidadeAVenda = document.querySelector("#newQtd").value;

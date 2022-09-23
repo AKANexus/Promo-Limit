@@ -14,9 +14,13 @@ namespace PromoLimit.Services
         }
 
 
-        public async Task<List<Produto>> GetAllProdutos()
+        public async Task<List<Produto>> GetAllProdutos(bool asNoTracking = true)
         {
-            return await _context.Produtos.OrderBy(x=>x.MLB).ToListAsync();
+            return asNoTracking switch
+            {
+                true => await _context.Produtos.AsNoTracking().OrderBy(x=>x.MLB).ToListAsync(),
+                false => await _context.Produtos.OrderBy(x=>x.MLB).ToListAsync()
+            };
         }
 
         public async Task<Produto> AddOrUpdate(Produto produto)

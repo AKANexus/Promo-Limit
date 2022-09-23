@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PromoLimit.Models;
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -62,7 +63,7 @@ namespace PromoLimit.Controllers
         [HttpGet]
         public async Task<SelectListItem[]> GetSellers()
         {
-            return (await _mlInfoDataService.GetAll()).Select(x => new SelectListItem() {Value = x.UserId.ToString(), Text = x.Vendedor}).ToArray();
+            return (await _mlInfoDataService.GetAll()).Select(x => new SelectListItem() { Value = x.UserId.ToString(), Text = x.Vendedor }).ToArray();
         }
 
         [HttpPost]
@@ -70,27 +71,68 @@ namespace PromoLimit.Controllers
         {
             if (produto is not null)
             {
-                //await _produtoDataService.AddOrUpdate(produto);
                 var consultaMl = await _mlApiService.GetDescricaoFromMLB(produto.MLB);
                 if (!consultaMl.Item1)
                 {
-                    TempData["Error"] = consultaMl.Item2;
-                    return Json(new { success = false, error = consultaMl.Item2 });
+                    TempData["Error"] = "Erro. Tente novamente.";
+                    return Json(new { success = false, error = "Erro. Tente novamente." });
                 }
+                var users = await _mlInfoDataService.GetAll();
+                var produtos = await _produtoDataService.GetAllProdutos();
+
+                if (!users.Any(x => x.UserId == consultaMl.Item2.SellerId))
+                {
+                    TempData["Error"] = "O MLB informado não é de nenhuma conta cadastrada no sistema.";
+                    return Json(new { success = false, error = "O MLB informado não é de nenhuma conta cadastrada no sistema." });
+                }
+
                 if (true)
                 {
-                    Produto aGravar = new()
+                    if (consultaMl.Item2.Variations is not null && consultaMl.Item2.Variations.Count > 0)
                     {
-                        Ativo = true,
-                        Descricao = consultaMl.Item2,
-                        Id = produto.Id ?? 0,
-                        MLB = produto.MLB,
-                        QuantidadeAVenda = int.Parse(produto.QuantidadeAVenda),
-                        Estoque = produto.Estoque ?? 0,
-                        Seller = (int?)produto.Seller ?? 0
-                    };
-                    aGravar = await _produtoDataService.AddOrUpdate(aGravar);
-                    return Json(new { success= true });
+                        foreach (var variation in consultaMl.Item2.Variations)
+                        {
+                            if (!produtos.Any(x => x.MLB == consultaMl.Item2.Id && x.Variacao == int.Parse(variation.Id)))
+                            {
+                                await _mlApiService.AtualizaEstoqueDisponivel(consultaMl.Item2.Id,
+                                    int.Parse(produto.QuantidadeAVenda), consultaMl.Item2.SellerId, int.Parse(variation.Id));
+                            }
+                            StringBuilder sb = new();
+                            foreach (var attributeCombination in variation.AttributeCombinations)
+                            {
+                                sb.Append($"{attributeCombination.Name}:{attributeCombination.ValueName}");
+                            }
+                            Produto aGravar = new()
+                            {
+                                Ativo = true,
+                                Descricao = $"{consultaMl.Item2.Title} - {sb}",
+                                Id = produto.Id ?? 0,
+                                MLB = produto.MLB,
+                                QuantidadeAVenda = int.Parse(produto.QuantidadeAVenda),
+                                Estoque = produto.Estoque ?? 0,
+                                Seller = consultaMl.Item2.SellerId
+                            };
+                            await _produtoDataService.AddOrUpdate(aGravar);
+                        }
+                    }
+                    else
+                    {
+                        await _mlApiService.AtualizaEstoqueDisponivel(consultaMl.Item2.Id,
+                            int.Parse(produto.QuantidadeAVenda), consultaMl.Item2.SellerId, null);
+
+                        Produto aGravar = new()
+                        {
+                            Ativo = true,
+                            Descricao = consultaMl.Item2.Title,
+                            Id = produto.Id ?? 0,
+                            MLB = produto.MLB,
+                            QuantidadeAVenda = int.Parse(produto.QuantidadeAVenda),
+                            Estoque = produto.Estoque ?? 0,
+                            Seller = consultaMl.Item2.SellerId
+                        };
+                        await _produtoDataService.AddOrUpdate(aGravar);
+                    }
+                    return Json(new { success = true });
                 }
             }
 
@@ -100,7 +142,7 @@ namespace PromoLimit.Controllers
         public async Task<IActionResult> RemoveMlbEntry([FromQuery] int id)
         {
             await _produtoDataService.Delete(id);
-            return Json(new { success= true });
+            return Json(new { success = true });
         }
 
         public async Task<IActionResult> MlRedirect(string code)
@@ -108,7 +150,6 @@ namespace PromoLimit.Controllers
             if (!String.IsNullOrWhiteSpace(code))
             {
                 var tokenXChange = await _mlApiService.XChangeCodeForToken(code);
-
 
                 if (!tokenXChange.Item1 || tokenXChange.Item2 is null)
                 {
@@ -121,9 +162,13 @@ namespace PromoLimit.Controllers
                         var userInfo = await _mlApiService.GetSellerName(tokenXChange.Item2.UserId);
 
                         await _mlInfoDataService.AddOrUpdateMlInfo(new()
-                            {
-                                AccessToken = tokenXChange.Item2.AccessToken, RefreshToken = tokenXChange.Item2.RefreshToken, UserId = tokenXChange.Item2.UserId, Vendedor = userInfo.Item2
-                            }
+                        {
+                            AccessToken = tokenXChange.Item2.AccessToken,
+                            RefreshToken = tokenXChange.Item2.RefreshToken,
+                            UserId = tokenXChange.Item2.UserId,
+                            Vendedor = userInfo.Item2,
+                            ExpiryTime = DateTime.Now.AddSeconds(tokenXChange.Item2.ExpiresIn),
+                        }
                         );
                     }
                     catch (Exception e)
@@ -131,7 +176,7 @@ namespace PromoLimit.Controllers
                         Console.WriteLine(e);
                         throw;
                     }
-                   
+
                 }
 
                 return RedirectToAction("Index");
@@ -142,16 +187,43 @@ namespace PromoLimit.Controllers
 
         public async Task<IActionResult> MlCallback([FromBody] OrdersV2Notification notification)
         {
-            string[] contents = new string[8];
-            contents[0] = $"Id: {notification.Id}";
-            contents[1] = $"Resource: {notification.Resource}";
-            contents[2] = $"UserId: {notification.UserId}";
-            contents[3] = $"Topic: {notification.Topic}";
-            contents[4] = $"ApplicationId: {notification.Topic}";
-            contents[5] = $"Attempts: {notification.Attempts}";
-            contents[6] = $"Sent: {notification.Sent}";
-            contents[7] = $"Received: {notification.Received}";
-            await System.IO.File.AppendAllLinesAsync("logVendas.txt", contents);
+            return Ok();
+            var users = await _mlInfoDataService.GetAll();
+            var produtos = await _produtoDataService.GetAllProdutos();
+
+            if (users.Any(x => x.UserId == notification.UserId))
+            {
+                var order = await _mlApiService.GetOrderInfo(
+                     int.Parse(notification.Resource.Split('/')[notification.Resource.Split('/').Length - 1]), notification.UserId);
+                foreach (OrderItem orderItem in order.Item2.OrderItems)
+                {
+                    Produto? prodTentativo;
+                    if (orderItem.Item.VariationId is not null && orderItem.Item.VariationId != 0)
+                    {
+                        prodTentativo = produtos.FirstOrDefault(y =>
+                            y.MLB == orderItem.Item.Id && y.Variacao == orderItem.Item.VariationId);
+                    }
+                    else
+                    {
+                        prodTentativo = produtos.FirstOrDefault(y => y.MLB == orderItem.Item.Id);
+                    }
+
+                    if (prodTentativo is not null)
+                    {
+                        prodTentativo.Estoque -= orderItem.Quantity;
+                        await _produtoDataService.AddOrUpdate(prodTentativo);
+
+                        if (prodTentativo.Estoque >= prodTentativo.QuantidadeAVenda)
+                        {
+                            await _mlApiService.AtualizaEstoqueDisponivel(prodTentativo.MLB,
+                                prodTentativo.QuantidadeAVenda,
+                                notification.UserId,
+                                prodTentativo.Variacao);
+                        }
+                    }
+
+                }
+            }
             return Ok();
         }
 

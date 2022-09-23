@@ -198,7 +198,7 @@ namespace PromoLimit.Models
         public List<object> NonMercadoPagoPaymentMethods { get; set; }
 
         [JsonPropertyName("shipping")]
-        public Shipping Shipping { get; set; }
+        public Shipping1 Shipping { get; set; }
 
         [JsonPropertyName("international_delivery_mode")]
         public string InternationalDeliveryMode { get; set; }
@@ -225,7 +225,7 @@ namespace PromoLimit.Models
         public string ListingSource { get; set; }
 
         [JsonPropertyName("variations")]
-        public List<Variation> Variations { get; set; }
+        public List<Variation>? Variations { get; set; }
 
         [JsonPropertyName("status")]
         public string Status { get; set; }
@@ -324,7 +324,7 @@ namespace PromoLimit.Models
         public int Id { get; set; }
     }
 
-    public class Shipping
+    public class Shipping1
     {
         [JsonPropertyName("mode")]
         public string Mode { get; set; }
@@ -393,7 +393,7 @@ namespace PromoLimit.Models
     public class Variation
     {
         [JsonPropertyName("id")]
-        public object Id { get; set; }
+        public string Id { get; set; }
 
         [JsonPropertyName("price")]
         public double Price { get; set; }
