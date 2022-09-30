@@ -49,7 +49,6 @@ using (var scope = app.Services.CreateScope())
     await dataContext.Database.MigrateAsync();
 }
 
-if (!File.Exists("logVendas.txt")) File.Create("logVendas.txt").Close();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

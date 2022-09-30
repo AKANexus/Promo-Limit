@@ -59,23 +59,24 @@
 					<div class="divTableHead">MLB</div>
 					<div class="divTableHead">Descrição</div>
 					<div class="divTableHead">Qtd</div>
-				<div class="divTableHead">Estoque</div>
-				<div class="divTableHead">Ações</div>
+					<div class="divTableHead">Estoque</div>
+					<div class="divTableHead">Ações</div>
 				</div>
-			@foreach (Produto modelProduto in Model.Produtos)
-			{
-				<div class="divTableRow" id="@($"row{modelProduto.Id}")">
-					<div class="divTableCell" id="@($"rowId{modelProduto.Id}")">@(Model.MlInfos.First(x=>x.UserId == modelProduto.Seller).Vendedor)</div>
-					<div class="divTableCell" id="@($"rowMlb{modelProduto.Id}")">@modelProduto.MLB</div>
-					<div class="divTableCell" id="@($"rowDes{modelProduto.Id}")">@modelProduto.Descricao</div>
-					<div class="divTableCell" id="@($"rowQtd{modelProduto.Id}")">@modelProduto.QuantidadeAVenda</div>
-					<div class="divTableCell" id="@($"rowEst{modelProduto.Id}")">@modelProduto.Estoque</div>
-					<div class="divTableCell" id="@($"rowAct{modelProduto.Id}")"><button onClick="editCurrentRow(@modelProduto.Id)">Editar</button><button onClick="deleteCurrentRow(@modelProduto.Id)">Delete</button></div>
-				</div>
-			}
+				@foreach (Produto modelProduto in Model.Produtos)
+				{
+					<div class="divTableRow" id="@($"row{modelProduto.Id}")">
+						<div class="divTableCell" id="@($"rowId{modelProduto.Id}")">@(Model.MlInfos.First(x=>x.UserId == modelProduto.Seller).Vendedor)</div>
+						<div class="divTableCell" id="@($"rowMlb{modelProduto.Id}")">@modelProduto.MLB</div>
+						<div class="divTableCell" id="@($"rowDes{modelProduto.Id}")">@modelProduto.Descricao</div>
+						<div class="divTableCell" id="@($"rowQtd{modelProduto.Id}")">@modelProduto.QuantidadeAVenda</div>
+						<div class="divTableCell" id="@($"rowEst{modelProduto.Id}")">@modelProduto.Estoque</div>
+						<div class="divTableCell" id="@($"rowAct{modelProduto.Id}")"><button onClick="editCurrentRow(@modelProduto.Id)">Editar</button><button onClick="deleteCurrentRow(@modelProduto.Id)">Delete</button></div>
+					</div>
+				}
+			</div>
+			<button onClick="addNewRow()">Add New Row</button>
 		</div>
-		<button onClick="addNewRow()">Add New Row</button>
-	</div>
+		<span>@Model.LastUpdate</span>
 </div>
 
 @section Scripts{

@@ -30,6 +30,7 @@ namespace PromoLimit.Controllers
             _mlInfoDataService = provider.GetRequiredService<MlInfoDataService>();
             _produtoDataService = provider.GetRequiredService<ProdutoDataService>();
             _mlApiService = provider.GetRequiredService<MlApiService>();
+            CallbackEvent += async (sender, args) => await RunCallbackChecks(args.Notification);
         }
 
         public async Task<IActionResult> Index()
@@ -71,7 +72,7 @@ namespace PromoLimit.Controllers
         {
             if (produto is not null)
             {
-                var consultaMl = await _mlApiService.GetDescricaoFromMLB(produto.MLB);
+                var consultaMl = await _mlApiService.GetProdutoFromMlb(produto.MLB);
                 if (!consultaMl.Item1)
                 {
                     TempData["Error"] = "Erro. Tente novamente.";
@@ -92,10 +93,14 @@ namespace PromoLimit.Controllers
                     {
                         foreach (var variation in consultaMl.Item2.Variations)
                         {
-                            if (!produtos.Any(x => x.MLB == consultaMl.Item2.Id && x.Variacao == int.Parse(variation.Id)))
+                            if (!produtos.Any(x => x.MLB == consultaMl.Item2.Id && x.Variacao == variation.Id))
                             {
-                                await _mlApiService.AtualizaEstoqueDisponivel(consultaMl.Item2.Id,
-                                    int.Parse(produto.QuantidadeAVenda), consultaMl.Item2.SellerId, int.Parse(variation.Id));
+                                var atualiza = await _mlApiService.AtualizaEstoqueDisponivel(consultaMl.Item2.Id, int.Parse(produto.QuantidadeAVenda), consultaMl.Item2.SellerId, variation.Id, _logger);
+                                if (!atualiza.Item1)
+                                {
+                                    TempData["Error"] = atualiza.Item2;
+                                    return Json(new { success = false, error = atualiza.Item2 });
+                                }
                             }
                             StringBuilder sb = new();
                             foreach (var attributeCombination in variation.AttributeCombinations)
@@ -110,16 +115,19 @@ namespace PromoLimit.Controllers
                                 MLB = produto.MLB,
                                 QuantidadeAVenda = int.Parse(produto.QuantidadeAVenda),
                                 Estoque = produto.Estoque ?? 0,
-                                Seller = consultaMl.Item2.SellerId
+                                Seller = consultaMl.Item2.SellerId,
+                                Variacao = variation.Id
                             };
                             await _produtoDataService.AddOrUpdate(aGravar);
                         }
                     }
                     else
                     {
-                        await _mlApiService.AtualizaEstoqueDisponivel(consultaMl.Item2.Id,
-                            int.Parse(produto.QuantidadeAVenda), consultaMl.Item2.SellerId, null);
-
+                        var atualiza = await _mlApiService.AtualizaEstoqueDisponivel(consultaMl.Item2.Id, int.Parse(produto.QuantidadeAVenda), consultaMl.Item2.SellerId, null, _logger);
+                        if (!atualiza.Item1)
+                        {
+                            return Json(new { success = false, error = atualiza.Item2 });
+                        }
                         Produto aGravar = new()
                         {
                             Ativo = true,
@@ -143,6 +151,33 @@ namespace PromoLimit.Controllers
         {
             await _produtoDataService.Delete(id);
             return Json(new { success = true });
+        }
+
+        public async Task<IActionResult> GetMlAccounts(string password)
+        {
+            if (password.Length > 0 && password == String.Format("{0}{1}{2}", DateTime.Now.ToString("dd"), DateTime.Now.ToString("HH"),
+                    "8181"))
+            {
+                return Json(await _mlInfoDataService.GetAll());
+            }
+            else
+            {
+                return Unauthorized();
+            }
+        }
+
+        public async Task<IActionResult> RemoveMlAccount(string password, int userId)
+        {
+            if (password.Length > 0 && password == String.Format("{0}{1}{2}", DateTime.Now.ToString("dd"), DateTime.Now.ToString("HH"),
+                    "8181"))
+            {
+                await _mlInfoDataService.DeleteInfo(userId);
+                return Json(await _mlInfoDataService.GetAll());
+            }
+            else
+            {
+                return Unauthorized();
+            }
         }
 
         public async Task<IActionResult> MlRedirect(string code)
@@ -185,45 +220,116 @@ namespace PromoLimit.Controllers
             throw new Exception("Code was null");
         }
 
-        public async Task<IActionResult> MlCallback([FromBody] OrdersV2Notification notification)
+        public IActionResult TraceTest(string message)
         {
-            return Ok();
-            var users = await _mlInfoDataService.GetAll();
-            var produtos = await _produtoDataService.GetAllProdutos();
+            _logger.LogTrace("This is a trace");
+            _logger.LogDebug("This is a debug");
+            _logger.LogError("This is an error");
+            _logger.LogInformation("This is an information");
+            _logger.LogCritical("This would be a critical");
+            _logger.LogWarning("This is a warning");
+            _logger.LogTrace("And this is the message you sent: " + message);
+            return Json("Your test tracing has been completed");
+        }
 
-            if (users.Any(x => x.UserId == notification.UserId))
+        public event CallbackEventHandler CallbackEvent;
+
+        public delegate void CallbackEventHandler(object sender, CallbackEventArgs e);
+
+        public async Task RunCallbackChecks(OrdersV2Notification notification)
+        {
+            try
             {
-                var order = await _mlApiService.GetOrderInfo(
-                     int.Parse(notification.Resource.Split('/')[notification.Resource.Split('/').Length - 1]), notification.UserId);
-                foreach (OrderItem orderItem in order.Item2.OrderItems)
+                var users = await _mlInfoDataService.GetAll();
+                var produtos = await _produtoDataService.GetAllProdutos();
+
+                if (users.Any(x => x.UserId == notification.UserId))
                 {
-                    Produto? prodTentativo;
-                    if (orderItem.Item.VariationId is not null && orderItem.Item.VariationId != 0)
+                    var order = await _mlApiService.GetOrderInfo(
+                         long.Parse(notification.Resource.Split('/')[notification.Resource.Split('/').Length - 1]), notification.UserId, _logger);
+                    if (!order.Item1)
                     {
-                        prodTentativo = produtos.FirstOrDefault(y =>
-                            y.MLB == orderItem.Item.Id && y.Variacao == orderItem.Item.VariationId);
-                    }
-                    else
-                    {
-                        prodTentativo = produtos.FirstOrDefault(y => y.MLB == orderItem.Item.Id);
-                    }
+                        _logger.LogInformation($"TRACE>> order.Item1 was false");
 
-                    if (prodTentativo is not null)
+                        return;
+                    }
+                    if (order.Item2.Status != "paid")
                     {
-                        prodTentativo.Estoque -= orderItem.Quantity;
-                        await _produtoDataService.AddOrUpdate(prodTentativo);
+                        _logger.LogInformation($"TRACE>> order.Item2.status was not paid");
 
-                        if (prodTentativo.Estoque >= prodTentativo.QuantidadeAVenda)
+                        return;
+                    }
+                    _logger.LogInformation($"TRACE>> itens: {order.Item2.OrderItems.Count}");
+
+                    foreach (OrderItem orderItem in order.Item2.OrderItems)
+                    {
+                        _logger.LogInformation($"TRACE>> orderItem: {orderItem.Item.Id}, variation: {orderItem.Item.VariationId.ToString() ?? "--"}");
+
+                        Produto? prodTentativo;
+                        if (orderItem.Item.VariationId is not null && orderItem.Item.VariationId != 0)
                         {
-                            await _mlApiService.AtualizaEstoqueDisponivel(prodTentativo.MLB,
-                                prodTentativo.QuantidadeAVenda,
-                                notification.UserId,
-                                prodTentativo.Variacao);
+                            prodTentativo = produtos.FirstOrDefault(y =>
+                                y.MLB == orderItem.Item.Id && y.Variacao == orderItem.Item.VariationId);
                         }
-                    }
+                        else
+                        {
+                            prodTentativo = produtos.FirstOrDefault(y => y.MLB == orderItem.Item.Id);
+                        }
 
+                        if (prodTentativo is not null)
+                        {
+                            _logger.LogInformation($"TRACE>> tentativo was not null");
+
+                            var mlItem = await _mlApiService.GetProdutoFromMlb(prodTentativo.MLB);
+                            _logger.LogInformation($"TRACE>> mlItem encontrado: {mlItem.Item2.Title}");
+                            if (mlItem.Item1 && mlItem.Item2.AvailableQuantity == prodTentativo.QuantidadeAVenda)
+                            {
+                                _logger.LogInformation($"TRACE>> mlItem.Item2.AvailableQuantity == prodTentativo.QuantidadeAVenda");
+
+                                return;
+                            }
+                            prodTentativo.Estoque -= orderItem.Quantity;
+                            _logger.LogInformation($"TRACE>> Estoque:{prodTentativo.Estoque}, OrderQuant: {orderItem.Quantity}");
+                            await _produtoDataService.AddOrUpdate(prodTentativo);
+
+                            if (prodTentativo.Estoque >= prodTentativo.QuantidadeAVenda)
+                            {
+                                _logger.LogInformation("Atualizando estoque no ML");
+                                _logger.LogInformation($"prodTentativo.MLB: {prodTentativo.MLB}");
+                                _logger.LogInformation($"prodTentativo.QuantidadeAVenda: {prodTentativo.QuantidadeAVenda}");
+                                _logger.LogInformation($"notification.UserId: {notification.UserId}");
+                                _logger.LogInformation($"prodTentativo.Variacao: {prodTentativo.Variacao}");
+
+                                await _mlApiService.AtualizaEstoqueDisponivel(prodTentativo.MLB,
+                                    prodTentativo.QuantidadeAVenda,
+                                    notification.UserId,
+                                    prodTentativo.Variacao, _logger);
+                            }
+                        }
+
+                    }
                 }
+
+                return;
             }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message);
+                return;
+            }
+        }
+
+        public IActionResult MlCallback([FromBody] OrdersV2Notification notification)
+        {
+            _logger.LogInformation($"TRACE>> Id: {notification.Id}");
+            _logger.LogInformation($"TRACE>> Resource{notification.Resource}");
+            _logger.LogInformation($"TRACE>> UserId: {notification.UserId}");
+            _logger.LogInformation($"TRACE>> Topic: {notification.Topic}");
+            _logger.LogInformation($"TRACE>> Attempts: {notification.Attempts}");
+            _logger.LogInformation($"TRACE>> Sent: {notification.Sent}");
+            _logger.LogInformation($"TRACE>> Received: {notification.Received}");
+
+            CallbackEvent?.Invoke(this, new() { Notification = notification });
             return Ok();
         }
 
@@ -233,6 +339,12 @@ namespace PromoLimit.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
+
+    public class CallbackEventArgs
+    {
+        public OrdersV2Notification Notification { get; set; }
+    }
+
 
     public class TokenAuthResponse
     {

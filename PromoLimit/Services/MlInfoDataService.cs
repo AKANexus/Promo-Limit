@@ -16,20 +16,30 @@ namespace PromoLimit.Services
 
         public async Task<List<MLInfo>> GetAll()
         {
-            return await _context.MlInfos.ToListAsync();
+            return await _context.MlInfos.AsNoTracking().ToListAsync();
         }
-        public async Task<MLInfo?> GetByUserId(int userId, bool asNoTracking = false)
+        public async Task<MLInfo?> GetByUserIdAsNoTracking(int userId)
         {
-            return asNoTracking switch
+            return true switch
             {
                 true => await _context.MlInfos.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId),
                 false => await _context.MlInfos.FirstOrDefaultAsync(x => x.UserId == userId)
             };
         }
 
+        public async Task DeleteInfo(int userId)
+        {
+            var tentative = await _context.MlInfos.FirstOrDefaultAsync(x => x.UserId == userId);
+            if (tentative != null)
+            {
+                _context.Remove(tentative);
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task AddOrUpdateMlInfo(MLInfo info)
         {
-            var tentative = await GetByUserId(info.UserId, true);
+            var tentative = await GetByUserIdAsNoTracking(info.UserId);
             if (tentative is not null)
             {
                 info.Id = tentative.Id;

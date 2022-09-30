@@ -1,4 +1,5 @@
-﻿using PromoLimit.Controllers;
+﻿using System.Text.Json;
+using PromoLimit.Controllers;
 using PromoLimit.Models;
 using RestSharp;
 using RestSharp.Serializers;
@@ -15,7 +16,7 @@ namespace PromoLimit.Services
             _client = new RestClient("https://api.mercadolibre.com");
             _mlInfoDataService = provider.GetRequiredService<MlInfoDataService>();
         }
-        public async Task<(bool, ProdutoBody?)> GetDescricaoFromMLB(string produtoMlb)
+        public async Task<(bool, ProdutoBody?, string?)> GetProdutoFromMlb(string produtoMlb)
         {
             RestRequest request = new RestRequest($"items/{produtoMlb}");
             var response = await _client.ExecuteGetAsync<ProdutoBody>(request);
@@ -24,53 +25,54 @@ namespace PromoLimit.Services
             {
                 if (response.Data is null)
                 {
-                    return (false, null);
+                    return (false, null, response.ErrorMessage ?? "Erro");
                 }
-                return (false, null);
+                return (false, null, response.ErrorMessage ?? "Erro");
             }
 
             if (response.Data.Error is not null)
             {
-                return (false, null);
+                return (false, null, null);
             }
 
-            return (true, response.Data);
+            return (true, response.Data, null);
         }
 
-        public async Task RefreshToken(int userId)
+        public async Task<string?> RefreshToken(int userId)
         {
-            var code = await _mlInfoDataService.GetByUserId(userId, true);
-            var tokenXChange = await XChangeCodeForToken(code.RefreshToken);
+            var mlInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(userId);
+            var tokenXChange = await RefreshApiKey(mlInfo.RefreshToken);
 
-            if (!tokenXChange.Item1 || tokenXChange.Item2 is null)
+            if (!tokenXChange.success || tokenXChange.response is null)
             {
-                throw new Exception("Response was not successful");
+                return tokenXChange.error;
             }
             else
             {
                 try
                 {
-                    var userInfo = await GetSellerName(tokenXChange.Item2.UserId);
+                    var userInfo = await GetSellerName(tokenXChange.response.UserId);
 
                     await _mlInfoDataService.AddOrUpdateMlInfo(new()
                         {
-                            AccessToken = tokenXChange.Item2.AccessToken,
-                            RefreshToken = tokenXChange.Item2.RefreshToken,
-                            UserId = tokenXChange.Item2.UserId,
+                            AccessToken = tokenXChange.response.AccessToken,
+                            RefreshToken = tokenXChange.response.RefreshToken,
+                            UserId = tokenXChange.response.UserId,
                             Vendedor = userInfo.Item2,
-                            ExpiryTime = DateTime.Now.AddSeconds(tokenXChange.Item2.ExpiresIn),
+                            ExpiryTime = DateTime.Now.AddSeconds(tokenXChange.response.ExpiresIn),
                         }
                     );
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e);
-                    throw;
+                    return e.Message;
                 }
             }
+
+            return null;
         }
 
-        public async Task<(bool, TokenAuthResponse?)> XChangeCodeForToken(string code)
+        public async Task<(bool success, TokenAuthResponse? response, string? error)> XChangeCodeForToken(string code)
         {
             RestRequest request = new RestRequest("oauth/token").AddJsonBody(
                 new
@@ -87,10 +89,35 @@ namespace PromoLimit.Services
 
             if (!response.IsSuccessful)
             {
-                return (false, null);
+                var erro = JsonSerializer.Deserialize<ErrorBody>(response.Content);
+                return (false, null, $"{erro.Error} - {erro.Message}");
             }
 
-            return (true, response.Data);
+            return (true, response.Data, null);
+        }
+
+        public async Task<(bool success, TokenAuthResponse? response, string? error)> RefreshApiKey(string refreshKey)
+        {
+            RestRequest request = new RestRequest("oauth/token").AddJsonBody(
+                new
+                {
+                    grant_type = "refresh_token",
+                    client_id = "5728494926210323",
+                    client_secret = "8FipsohX5nBunPKnymueFoxjYOCaCXmx",
+                    refresh_token = refreshKey,
+                    redirect_uri = "https://promolimit.azurewebsites.net/Home/MlRedirect",
+                }
+            );
+
+            var response = await _client.ExecutePostAsync<TokenAuthResponse>(request);
+
+            if (!response.IsSuccessful)
+            {
+                var erro = JsonSerializer.Deserialize<ErrorBody>(response.Content);
+                return (false, null, $"{erro.Error} - {erro.Message}");
+            }
+
+            return (true, response.Data, null);
         }
 
         public async Task<(bool, string)> GetSellerName(int sellerId)
@@ -116,62 +143,85 @@ namespace PromoLimit.Services
 
         }
 
-        public async Task<(bool, MlOrder?)> GetOrderInfo(int orderId, int sellerId)
+        public async Task<(bool, MlOrder?)> GetOrderInfo(long orderId, int sellerId, ILogger logger)
         {
-            var apiKeyInfo = await _mlInfoDataService.GetByUserId(sellerId, true);
-            if (apiKeyInfo.ExpiryTime >= DateTime.Now)
+            logger.LogInformation($"TRACE>> Getting order {orderId}");
+            var apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
+            if (apiKeyInfo.ExpiryTime <= DateTime.Now)
             {
+                logger.LogInformation($"TRACE>> ApiToken venceu");
+
                 await RefreshToken(sellerId);
-                apiKeyInfo = await _mlInfoDataService.GetByUserId(sellerId, true);
+                apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
 
             }
             string apiKey = apiKeyInfo.AccessToken;
 
             RestRequest request = new RestRequest($"orders/{orderId}");
-            var response = await _client.ExecuteGetAsync<MlOrder>(request);
             request.AddHeader("Authorization", $"Bearer {apiKey}");
             request.AddHeader("content-type", "application/json");
-
-            if (!response.IsSuccessful)
+            try
             {
-                if (response.Data is null)
+                var response = await _client.ExecuteGetAsync<MlOrder>(request);
+                logger.LogInformation($"TRACE>> Response: {response.IsSuccessful}");
+
+                if (!response.IsSuccessful)
+                {
+                    if (response.Data is null)
+                    {
+                        return (false, null);
+                    }
+                    return (false, null);
+                }
+
+                if (response.Data.Error is not null)
                 {
                     return (false, null);
                 }
-                return (false, null);
-            }
 
-            if (response.Data.Error is not null)
+                return (true, response.Data);
+            }
+            catch (Exception e)
             {
+                await File.WriteAllTextAsync("logCallback.txt", e.Message);
+
                 return (false, null);
+
             }
 
-            return (true, response.Data);
+
+            
         }
 
-        public async Task<bool> AtualizaEstoqueDisponivel(string mlb, int estoqueDisponivel, int sellerId, int? variacao)
+        public async Task<(bool, string?)> AtualizaEstoqueDisponivel(string mlb, int estoqueDisponivel, int sellerId, long? variacao, ILogger logger)
         {
-            var apiKeyInfo = await _mlInfoDataService.GetByUserId(sellerId, true);
-            if (apiKeyInfo.ExpiryTime >= DateTime.Now)
+            var apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
+            if (apiKeyInfo.ExpiryTime <= DateTime.Now)
             {
-                await RefreshToken(sellerId);
-                apiKeyInfo = await _mlInfoDataService.GetByUserId(sellerId, true);
+                var error = await RefreshToken(sellerId);
+                if (error is not null)
+                {
+                    return (false, error);
+                }
+                apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
 
             }
             string apiKey = apiKeyInfo.AccessToken;
             
-            RestRequest request = new RestRequest($"items/{mlb}");
+            RestRequest request = new RestRequest();
             request.AddHeader("Authorization", $"Bearer {apiKey}");
             request.AddHeader("content-type", "application/json");
-            if (variacao is not null)
+
+            if (variacao is null)
             {
+                request.Resource = $"items/{mlb}";
                 request.AddJsonBody(new {available_quantity = estoqueDisponivel});
             }
             else
             {
-                MlVariation mlvar = new();
-                mlvar.Variations = new();
-                mlvar.Variations.Add(new() {Id = variacao, AvailableQuantity = estoqueDisponivel});
+                request.Resource = $"items/{mlb}/variations/{variacao}";
+                Variation1 mlvar = new() {Id = (long)variacao, AvailableQuantity = estoqueDisponivel};
+                
                 request.AddJsonBody(mlvar);
             }
 
@@ -179,10 +229,13 @@ namespace PromoLimit.Services
 
             if (!response.IsSuccessful)
             {
-                return false;
+                logger.LogInformation($"TRACE>> atualizaestoque not successful");
+                await File.WriteAllTextAsync("logCallback.txt", response.ErrorMessage??"message null");
+
+                return (false, response.ErrorMessage);
             }
 
-          return true;
+          return (true, null);
         }
     }
 }
