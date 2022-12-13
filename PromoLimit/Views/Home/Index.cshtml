@@ -8,8 +8,8 @@
 <div class="text-center">
 	<h3>Lista de Produtos</h3>
 	<p>
-		<button onClick="addNewRow()">Adicionar novo produtos</button>
-		<button href="https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=5728494926210323&redirect_uri=https://promolimit.azurewebsites.net/Home/Redirect">Associar conta do ML</button>
+		<button class="btn btn-primary" onClick="addNewRow()">Adicionar novo produto</button>
+		<button class="btn btn-secondary" href="https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=5728494926210323&redirect_uri=https://promolimit.azurewebsites.net/Home/Redirect">Associar conta do ML</button>
 	</p>
 	@if (TempData["Error"] is not null)
 	{
@@ -17,7 +17,7 @@
 	}
 		
 	<div style="margin-top: 1rem">
-		<table id="produtosTable" class="table table-bordered table-hover table-responsive" width="90%">
+		<table id="produtosTable" class="table table-bordered table-hover table-responsive" width="100%">
 			<thead>
 			<tr id="tableHeaders">
 				<th>Vendedor</th>

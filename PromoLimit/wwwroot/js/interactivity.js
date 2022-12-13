@@ -23,7 +23,7 @@ async function GetData(pageNum = 1) {
         headers: myHeaders
     };
 
-    const get = await fetch(`/Home/GetDataPaged?recordsPerPage=15&pageNumber${pageNum}`, requestOptions);
+    const get = await fetch(`/Home/GetDataPaged?recordsPerPage=15&pageNumber=${pageNum}`, requestOptions);
     if (get.status >= 400) {
         alert("Deu ruim");
         return;
@@ -38,7 +38,7 @@ function DrawTabela(data) {
     const tabela = document.getElementById("tableBody");
     tabela.innerHTML = null;
     data.returnedData.map(element => {
-        tabela.insertAdjacentHTML("beforeend", `<tr><td>${element.seller}</td><td>${element.mlb}</td><td>${element.descricao}</td><td>${element.quantidadeAVenda}</td><td>${element.estoque}</td><td><button class="btn btn-warning" onclick="editRow(${element.id}, '${element.mlb}', ${element.quantidadeAVenda}, ${element.estoque})">E</button><button class="btn btn-danger" onclick="deleteCurrentRow(${element.id}, '${element.descricao}')">D</button></td></tr>`);
+        tabela.insertAdjacentHTML("beforeend", `<tr><td>${element.seller}</td><td>${element.mlb}</td><td>${element.descricao}</td><td>${element.quantidadeAVenda}</td><td>${element.estoque}</td><td style="white-space: nowrap;"><button class="btn btn-warning" onclick="editRow(${element.id}, '${element.mlb}', ${element.quantidadeAVenda}, ${element.estoque})">E</button><button class="btn btn-danger" onclick="deleteCurrentRow(${element.id}, '${element.descricao}')">D</button></td></tr>`);
     });
     AtualizaPaginacao(data.currentPage, data.maxPages, data.recordsTotal, data.recordsPerPage);
 }
@@ -80,8 +80,8 @@ function pageSelectorKeyDown(e) {
 async function addNewRow() {
     produtoIdField.value = null;
     mlbField.value = null;
-    quantAVendaField = null;
-    estoqueField = null;
+    quantAVendaField.value = null;
+    estoqueField.value = null;
     gravarNovoModal.show();
 }
 
