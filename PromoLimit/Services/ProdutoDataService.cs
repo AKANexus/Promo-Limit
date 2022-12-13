@@ -23,6 +23,29 @@ namespace PromoLimit.Services
             };
         }
 
+        public async Task<int> CountProdutos()
+        {
+            return await _context.Produtos.CountAsync();
+        }
+
+        public async Task<List<Produto>> GetAllProdutosPaged(int recordsPerPage = 15, int pageNumber = 1, bool asNoTracking = true)
+        {
+	        return asNoTracking switch
+	        {
+		        true => await _context.Produtos.AsNoTracking()
+			        .OrderBy(x => x.MLB)
+			        .Skip((pageNumber - 1) * recordsPerPage)
+			        .Take(recordsPerPage)
+			        .ToListAsync(),
+
+		        false => await _context.Produtos
+			        .OrderBy(x=>x.MLB)
+			        .Skip((pageNumber - 1) * recordsPerPage)
+			        .Take(recordsPerPage)
+			        .ToListAsync()
+	        };
+        }
+
         public async Task<Produto> AddOrUpdate(Produto produto)
         {
             var tentativo = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == produto.Id);

@@ -5,78 +5,70 @@
 	Layout = "_Layout";
 }
 
-@section Styles {
-	<style>
-		/* DivTable.com */
-		.divTable {
-			display: table;
-			width: 100%;
-		}
-
-		.divTableRow {
-			display: table-row;
-		}
-
-		.divTableHeading {
-			background-color: #EEE;
-			display: table-header-group;
-		}
-
-		.divTableCell, .divTableHead {
-			border: 1px solid #999999;
-			display: table-cell;
-			padding: 3px 10px;
-		}
-
-		.divTableHeading {
-			background-color: #EEE;
-			display: table-header-group;
-			font-weight: bold;
-		}
-
-		.divTableFoot {
-			background-color: #EEE;
-			display: table-footer-group;
-			font-weight: bold;
-		}
-
-		.divTableBody {
-			display: table-row-group;
-		}
-	</style>
-}
-
-	<div class="text-center">
-		<h3>Lista de Produtos</h3>
-		@if (TempData["Error"] is not null)
-		{
+<div class="text-center">
+	<h3>Lista de Produtos</h3>
+	<p>
+		<button onClick="addNewRow()">Adicionar novo produtos</button>
+		<button href="https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=5728494926210323&redirect_uri=https://promolimit.azurewebsites.net/Home/Redirect">Associar conta do ML</button>
+	</p>
+	@if (TempData["Error"] is not null)
+	{
 		<div style="color: red">@TempData["Error"]</div>
-		}
-		<div class="divTable">
-			<div class="divTableBody" id="tableBod">
-				<div class="divTableRow">
-					<div class="divTableHead">Seller</div>
-					<div class="divTableHead">MLB</div>
-					<div class="divTableHead">Descrição</div>
-					<div class="divTableHead">Qtd</div>
-					<div class="divTableHead">Estoque</div>
-					<div class="divTableHead">Ações</div>
-				</div>
-				@foreach (Produto modelProduto in Model.Produtos)
-				{
-					<div class="divTableRow" id="@($"row{modelProduto.Id}")">
-						<div class="divTableCell" id="@($"rowId{modelProduto.Id}")">@(Model.MlInfos.First(x=>x.UserId == modelProduto.Seller).Vendedor)</div>
-						<div class="divTableCell" id="@($"rowMlb{modelProduto.Id}")">@modelProduto.MLB</div>
-						<div class="divTableCell" id="@($"rowDes{modelProduto.Id}")">@modelProduto.Descricao</div>
-						<div class="divTableCell" id="@($"rowQtd{modelProduto.Id}")">@modelProduto.QuantidadeAVenda</div>
-						<div class="divTableCell" id="@($"rowEst{modelProduto.Id}")">@modelProduto.Estoque</div>
-						<div class="divTableCell" id="@($"rowAct{modelProduto.Id}")"><button onClick="editCurrentRow(@modelProduto.Id)">Editar</button><button onClick="deleteCurrentRow(@modelProduto.Id)">Delete</button></div>
-					</div>
-				}
+	}
+		
+	<div style="margin-top: 1rem">
+		<table id="produtosTable" class="table table-bordered table-hover table-responsive" width="90%">
+			<thead>
+			<tr id="tableHeaders">
+				<th>Vendedor</th>
+				<th>MLB</th>
+				<th>Descrição</th>
+				<th>Quant.</th>
+				<th>Estoque</th>
+				<th>Ações</th>
+			</tr>
+			</thead>
+			<tbody id="tableBody"></tbody>
+		</table>
+		<nav class="d-flex flex-row-reverse justify-content-between">
+			<ul class="pagination" id="paginationButtons">
+			</ul>
+			<span id="recordNumbering"></span>
+		</nav>
+	</div>
+	<span>@Model.LastUpdate</span>
+</div>
+
+<div class="modal fade" id="gravarNovoModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="staticBackdropLabel">Cadastrar novo fabricante</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
-			<button onClick="addNewRow()">Add New Row</button>
+			<div class="modal-body col">
+				<div class="col" style="height: 120px">
+					<input type="number" id="produtoIdField" hidden/>
+					<div class="form-group d-flex flex-column">
+						<label for="mlbField">MLB</label>
+						<input id="mlbField"/>
+					</div>
+					<div class="form-group d-flex flex-column">
+						<label for="quantAVendaField">Quant. a Venda</label>
+						<input type="number" id="quantAVendaField"/>
+					</div>
+					<div class="form-group d-flex flex-column">
+						<label for="estoqueField">Estoque</label>
+						<input id="estoqueField" type="number"/>
+					</div>
+				</div>
+			</div>
+			<div class="modal-footer" style="margin-top: 1rem">
+				<button type="button" class="btn btn-primary" onclick="gravarProduto()">Gravar</button>
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+			</div>
 		</div>
-		<span>@Model.LastUpdate</span>
+	</div>
 </div>
 
 @section Scripts{

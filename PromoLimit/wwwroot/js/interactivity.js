@@ -1,22 +1,97 @@
-﻿async function addNewRow() {
-    if (newLineOpen === false) {
-        let tabela = document.querySelector("#tableBod");
-        tabela.innerHTML +=
-            '<div class="divTableRow" id="rowNew"><div class="divTableCell" id="rowNewId"><input readonly></div><div class="divTableCell" id="rowNewMlb"><input id="newMlb"/></div><div class="divTableCell" id="rowNewDes"><input readonly/></div><div class="divTableCell" id="rowNewQtd"><input type="number" id="newQtd"/></div><div class="divTableCell" id="rowNewEst"><input type="number" id="newEst"/></div><div class="divTableCell" id="rowNewAct"><a href="#" onclick="saveNew(null)">Salvar</a></div></div>';
-        //let requestOpts = { method: "GET", headers: myHeaders };
-        //let get = await fetch(`/Home/GetSellers`, requestOpts);
-        //let response = await get.text();
-        //debugger;
-        //let resposta = JSON.parse(response);
-        //let selectElement = document.querySelector("#rowVendedorId");
-        //for (var i = 0; i < resposta.length; i++) {
-        //    let el = document.createElement("option");
-        //    el.text = resposta[i].text;
-        //    el.value = resposta[i].value;
-        //    selectElement.appendChild(el);
-        //}
-        newLineOpen = true;
+﻿var gravarNovoModal;
+var myHeaders = new Headers();
+var produtoIdField;
+var mlbField;
+var quantAVendaField;
+var estoqueField;
+
+$(document).ready(function () {
+    myHeaders.append("Content-Type", "application/json");
+    GetData();
+    gravarNovoModal = new bootstrap.Modal(document.getElementById("gravarNovoModal"), {
+        keyboard: false
+    });
+    produtoIdField = document.getElementById("produtoIdField");
+    mlbField = document.getElementById("mlbField");
+    quantAVendaField = document.getElementById("quantAVendaField");
+    estoqueField = document.getElementById("estoqueField");
+});
+
+async function GetData(pageNum = 1) {
+    const requestOptions = {
+        method: "GET",
+        headers: myHeaders
+    };
+
+    const get = await fetch(`/Home/GetDataPaged?recordsPerPage=15&pageNumber${pageNum}`, requestOptions);
+    if (get.status >= 400) {
+        alert("Deu ruim");
+        return;
+    } else {
+        const receivedData = JSON.parse(await get.text());
+        DrawTabela(receivedData);
     }
+
+}
+
+function DrawTabela(data) {
+    const tabela = document.getElementById("tableBody");
+    tabela.innerHTML = null;
+    data.returnedData.map(element => {
+        tabela.insertAdjacentHTML("beforeend", `<tr><td>${element.seller}</td><td>${element.mlb}</td><td>${element.descricao}</td><td>${element.quantidadeAVenda}</td><td>${element.estoque}</td><td><button class="btn btn-warning" onclick="editRow(${element.id}, '${element.mlb}', ${element.quantidadeAVenda}, ${element.estoque})">E</button><button class="btn btn-danger" onclick="deleteCurrentRow(${element.id}, '${element.descricao}')">D</button></td></tr>`);
+    });
+    AtualizaPaginacao(data.currentPage, data.maxPages, data.recordsTotal, data.recordsPerPage);
+}
+
+function AtualizaPaginacao(pagAtual, maxPags, maxRecords, recordsPerPage) {
+    const paginacaoArea = document.getElementById("paginationButtons");
+    const recordNumbers = document.getElementById("recordNumbering");
+    recordNumbers.innerHTML = null;
+    paginacaoArea.innerHTML = null;
+    maxPage = maxPags;
+    //recordNumbers.innerText = `Exibindo ${Math.min(maxRecords, recordsPerPage)} resultados de ${maxRecords}`;
+
+    if (pagAtual === 1) {
+        paginacaoArea.insertAdjacentHTML("beforeend", '<li class="disabled"><span style="font-size:1.5em;text-decoration:none;cursor:default">&#9198;</span></li>');
+        paginacaoArea.insertAdjacentHTML("beforeend", '<li class="disabled"><span style="font-size:1.5em;text-decoration:none;cursor:default">&#9194;</span></li>');
+    } else {
+        paginacaoArea.insertAdjacentHTML("beforeend", `<li><a href=# onClick=GetData() style="font-size:1.5em;text-decoration:none">&#9198;</a></li>`);
+        paginacaoArea.insertAdjacentHTML("beforeend", `<li><a href=# onClick=GetData(${pagAtual - 1}) style="font-size:1.5em;text-decoration:none">&#9194;</a></li>`);
+    }
+    paginacaoArea.insertAdjacentHTML("beforeend", `<input type="number" style="width:60px" value="${pagAtual}" id="pageSelectorField" />`);
+    if (pagAtual === maxPags) {
+        paginacaoArea.insertAdjacentHTML("beforeend", '<li class="disabled"><span style="font-size:1.5em;text-decoration:none;cursor:default">&#9193;</span></li>');
+        paginacaoArea.insertAdjacentHTML("beforeend", '<li class="disabled"><span style="font-size:1.5em;text-decoration:none;cursor:default">&#9197;</span></li>');
+    } else {
+        paginacaoArea.insertAdjacentHTML("beforeend", `<li><a href=# onClick=GetData(${pagAtual + 1}) style="font-size:1.5em;text-decoration:none">&#9193;</a></li>`);
+        paginacaoArea.insertAdjacentHTML("beforeend", `<li><a href=# onClick=GetData(${maxPags}) style="font-size:1.5em;text-decoration:none">&#9197;</a></li>`);
+    }
+    //const selector = document.getElementById("pageSelectorField");
+    document.addEventListener("keydown", pageSelectorKeyDown);
+}
+
+function pageSelectorKeyDown(e) {
+    if (e.code === "Enter" || e.code === "NumpadEnter") {
+        const selector = document.getElementById("pageSelectorField");
+        GetData(Math.min(selector.value, maxPage));
+    }
+}
+
+async function addNewRow() {
+    produtoIdField.value = null;
+    mlbField.value = null;
+    quantAVendaField = null;
+    estoqueField = null;
+    gravarNovoModal.show();
+}
+
+
+async function editRow(id, mlb, quantAVenda, estoque) {
+    produtoIdField.value = id;
+    mlbField.value = mlb;
+    quantAVendaField.value = quantAVenda;
+    estoqueField.value = estoque;
+    gravarNovoModal.show();
 }
 
 function editCurrentRow(rowNum) {
@@ -27,41 +102,31 @@ function editCurrentRow(rowNum) {
     let qtd = document.querySelector(`#rowQtd${rowNum}`).innerText;
     let est = document.querySelector(`#rowEst${rowNum}`).innerText;
 
-    row.innerHTML = '<div class="divTableCell" id="rowNewId"><input readonly value="'+vendedor+'"/></div><div class="divTableCell" id="rowNewMlb"><input readonly id="newMlb" value="'+mlb+'"/></div><div class="divTableCell" id="rowNewDes"><input readonly value="'+des+'"/></div><div class="divTableCell" id="rowNewQtd"><input id="newQtd" value="'+parseInt(qtd)+'"/></div><div class="divTableCell" id="rowNewEst"><input id="newEst" value="'+parseInt(est)+'"/></div><div class="divTableCell" id="rowNewAct"><a href="#" onclick="saveNew('+rowNum+')">Salvar</a></div>';
+    row.innerHTML = '<div class="divTableCell" id="rowNewId"><input readonly value="' + vendedor + '"/></div><div class="divTableCell" id="rowNewMlb"><input readonly id="newMlb" value="' + mlb + '"/></div><div class="divTableCell" id="rowNewDes"><input readonly value="' + des + '"/></div><div class="divTableCell" id="rowNewQtd"><input id="newQtd" value="' + parseInt(qtd) + '"/></div><div class="divTableCell" id="rowNewEst"><input id="newEst" value="' + parseInt(est) + '"/></div><div class="divTableCell" id="rowNewAct"><a href="#" onclick="saveNew(' + rowNum + ')">Salvar</a></div>';
 }
 
-var myHeaders = new Headers();
-myHeaders.append("Content-Type", "application/json");
+async function deleteCurrentRow(rowNum, descricao) {
+    if (confirm(`Deseja mesmo remover o item ${descricao}? Isso não poderá ser desfeito!`)) {
+        let requestOpts =
+        {
+            method: "DELETE",
+            headers: myHeaders
+        };
 
-async function deleteCurrentRow(rowNum) {
+        let post = await fetch(`/Home/RemoveMlbEntry?id=${rowNum}`, requestOpts);
+        let response = post.text();
 
-
-    let requestOpts =
-    {
-        method: "DELETE",
-        headers: myHeaders
-    };
-
-    let post = await fetch(`/Home/RemoveMlbEntry?id=${rowNum}`, requestOpts);
-    let response = post.text();
-
-    //var receivedData = await response;
-    location.reload();
-}
-
-async function saveNew(id) {
-    debugger;
-    let myHeaders = new Headers();
-    let meuBody = {};
-    meuBody.MLB = document.querySelector("#newMlb").value;
-    if (id)
-        meuBody.Id = id;
-    else {
-        //meuBody.Seller = document.querySelector("#rowVendedorId").value;
-        meuBody.Id = null;
+        //var receivedData = await response;
+        location.reload();
     }
-    meuBody.QuantidadeAVenda = document.querySelector("#newQtd").value;
-    meuBody.Estoque = document.querySelector("#newEst").value;
+}
+
+async function gravarProduto(id = null) {
+    let meuBody = {};
+    meuBody.MLB = mlbField.value;
+    meuBody.Id = produtoIdField.value;
+    meuBody.QuantidadeAVenda = quantAVendaField.value;
+    meuBody.Estoque = estoqueField.value;
     meuBody.Ativo = true;
     meuBody.Descricao = null;
 
@@ -81,4 +146,3 @@ async function saveNew(id) {
     location.reload();
 }
 
-var newLineOpen = false;
