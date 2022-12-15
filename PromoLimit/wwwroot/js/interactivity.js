@@ -85,6 +85,9 @@ async function addNewRow() {
     gravarNovoModal.show();
 }
 
+function acessarRelatorios() {
+    var janela = window.open('Report', '_blank');
+}
 
 async function editRow(id, mlb, quantAVenda, estoque) {
     produtoIdField.value = id;

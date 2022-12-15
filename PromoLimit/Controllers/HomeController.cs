@@ -59,7 +59,7 @@ namespace PromoLimit.Controllers
 			}
 			var MlInfos = await _mlInfoDataService.GetAll();
 			var produtos = await _produtoDataService.GetAllProdutosPaged(filteringModel.recordsPerPage, filteringModel.pageNumber);
-			
+
 			List<SaveMlbEntryJson> entriesList = new();
 
 			foreach (Produto produto in produtos)
@@ -67,12 +67,12 @@ namespace PromoLimit.Controllers
 				entriesList.Add(new SaveMlbEntryJson
 				{
 					Id = produto.Id,
-					Seller = MlInfos.First(x=>x.UserId == produto.Seller).Vendedor,
+					Seller = MlInfos.First(x => x.UserId == produto.Seller).Vendedor,
 					Descricao = produto.Descricao,
 					QuantidadeAVenda = produto.QuantidadeAVenda.ToString(),
 					Estoque = produto.Estoque,
 					MLB = produto.MLB
-				});	
+				});
 			}
 
 			var count = await _produtoDataService.CountProdutos();
@@ -382,6 +382,7 @@ namespace PromoLimit.Controllers
 		{
 			return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
 		}
+
 	}
 
 	public class CallbackEventArgs

@@ -5,6 +5,9 @@ namespace PromoLimit.Models
     // Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
     public class Item
     {
+        /// <summary>
+        /// MLB do item no Mercado Livre
+        /// </summary>
         [JsonPropertyName("id")]
         public string Id { get; set; }
 
@@ -21,6 +24,17 @@ namespace PromoLimit.Models
         public int Quantity { get; set; }
     }
 
+    public class MlOrders
+    {
+        [JsonPropertyName("query")]
+	    public string Query { get; set; }
+        [JsonPropertyName("results")]
+	    public MlOrder[] Results { get; set; }
+        [JsonPropertyName("message")]
+	    public string Message { get; set; }
+        [JsonPropertyName("error")]
+	    public string Error { get; set; }
+    }
 
     public class MlOrder
     {

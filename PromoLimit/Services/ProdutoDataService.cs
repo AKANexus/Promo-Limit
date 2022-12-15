@@ -12,8 +12,7 @@ namespace PromoLimit.Services
         {
             _context = provider.GetRequiredService<PromoLimitDbContext>();
         }
-
-
+        
         public async Task<List<Produto>> GetAllProdutos(bool asNoTracking = true)
         {
             return asNoTracking switch
@@ -71,6 +70,11 @@ namespace PromoLimit.Services
                 _context.Produtos.Remove(tentativo);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        public async Task<Produto?> GetByMlb(string mlb)
+        {
+	        return await _context.Produtos!.AsNoTracking().FirstOrDefaultAsync(x => x.MLB == mlb);
         }
     }
 }

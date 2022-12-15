@@ -188,9 +188,50 @@ namespace PromoLimit.Services
                 return (false, null);
 
             }
-
-
             
+        }
+
+        public async Task<(bool, MlOrder[]?)> GetOrdersBetweenDates(int sellerId, DateTime start, DateTime end)
+        {
+	        var apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
+	        if (apiKeyInfo.ExpiryTime <= DateTime.Now)
+	        {
+		        await RefreshToken(sellerId);
+		        apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
+	        }
+
+	        string apiKey = apiKeyInfo.AccessToken;
+
+	        RestRequest request = new RestRequest($"orders/search?seller={sellerId}&order.date_created.from={start:O}&order.date_created.to={end:O}");
+	        request.AddHeader("Authorization", $"Bearer {apiKey}");
+	        request.AddHeader("content-type", "application/json");
+	        try
+	        {
+		        var response = await _client.ExecuteAsync<MlOrders>(request);
+
+		        if (!response.IsSuccessful)
+		        {
+			        if (response.Data is null)
+			        {
+				        return (false, null);
+			        }
+
+			        return (false, null);
+		        }
+
+		        if (response.Data.Error is not null)
+		        {
+			        return (false, null);
+		        }
+
+		        return (true, response.Data.Results);
+	        }
+	        catch (Exception e)
+	        {
+		        await File.WriteAllTextAsync("logCallback.txt", e.Message);
+
+		        return (false, null);
+	        }
         }
 
         public async Task<(bool, string?)> AtualizaEstoqueDisponivel(string mlb, int estoqueDisponivel, int sellerId, long? variacao, ILogger logger)
