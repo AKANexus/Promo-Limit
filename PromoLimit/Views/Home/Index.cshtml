@@ -10,7 +10,7 @@
 	<p>
 		<button class="btn btn-primary" onClick="addNewRow()">Adicionar novo produto</button>
 		<button class="btn btn-secondary" href="https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=5728494926210323&redirect_uri=https://promolimit.azurewebsites.net/Home/Redirect">Associar conta do ML</button>
-		<button class="btn btn-primary" onClick="acessarRelatorios()">Relatório</button>
+		<button class="btn btn-primary disabled" onClick="acessarRelatorios()">Relatório</button>
 	</p>
 	@if (TempData["Error"] is not null)
 	{

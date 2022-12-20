@@ -191,8 +191,9 @@ namespace PromoLimit.Services
             
         }
 
-        public async Task<(bool, MlOrder[]?)> GetOrdersBetweenDates(int sellerId, DateTime start, DateTime end)
+        public async Task<(bool, List<MlOrder>?, string?)> GetOrdersBetweenDates(int sellerId, DateTime start, DateTime end)
         {
+	        List<MlOrder> orders = new();
 	        var apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
 	        if (apiKeyInfo.ExpiryTime <= DateTime.Now)
 	        {
@@ -202,7 +203,7 @@ namespace PromoLimit.Services
 
 	        string apiKey = apiKeyInfo.AccessToken;
 
-	        RestRequest request = new RestRequest($"orders/search?seller={sellerId}&order.date_created.from={start:O}&order.date_created.to={end:O}");
+	        RestRequest request = new RestRequest($"orders/search?seller={sellerId}&order.date_created.from={start.ToString("yyyy-MM-ddTHH:mm:ss.fff-03:00")}&order.date_created.to={end.ToString("yyyy-MM-ddTHH:mm:ss.fff-03:00")}");
 	        request.AddHeader("Authorization", $"Bearer {apiKey}");
 	        request.AddHeader("content-type", "application/json");
 	        try
@@ -213,24 +214,59 @@ namespace PromoLimit.Services
 		        {
 			        if (response.Data is null)
 			        {
-				        return (false, null);
+				        return (false, null, null);
 			        }
 
-			        return (false, null);
+			        return (false, null, null);
 		        }
 
 		        if (response.Data.Error is not null)
 		        {
-			        return (false, null);
+			        return (false, null, null);
 		        }
 
-		        return (true, response.Data.Results);
+		        orders.AddRange(response.Data.Results);
+
+		        if (response.Data.Paging.Total <= response.Data.Paging.Limit)
+		        {
+			        return (true, orders, null);
+		        }
+
+		        int offset = 0;
+		        while (response.Data.Paging.Total > response.Data.Paging.Limit + response.Data.Paging.Offset)
+		        {
+			        request.Resource =
+				        $"orders/search?seller={sellerId}&order.date_created.from={start.ToString("yyyy-MM-ddTHH:mm:ss.fff-03:00")}&order.date_created.to={end.ToString("yyyy-MM-ddTHH:mm:ss.fff-03:00")}&offset={offset+=response.Data.Paging.Limit}";
+
+			        response = await _client.ExecuteAsync<MlOrders>(request);
+
+			        if (!response.IsSuccessful)
+			        {
+				        if (response.Data is null)
+				        {
+					        return (false, null, null);
+				        }
+
+				        return (false, null, null);
+			        }
+
+			        if (response.Data.Error is not null)
+			        {
+				        return (false, null, null);
+			        }
+
+			        orders.AddRange(response.Data.Results);
+		        }
+
+		        return (true, orders, null);
+
+
 	        }
 	        catch (Exception e)
 	        {
 		        await File.WriteAllTextAsync("logCallback.txt", e.Message);
 
-		        return (false, null);
+		        return (false, null, null);
 	        }
         }
 

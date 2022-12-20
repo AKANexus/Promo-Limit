@@ -34,6 +34,15 @@ namespace PromoLimit.Models
 	    public string Message { get; set; }
         [JsonPropertyName("error")]
 	    public string Error { get; set; }
+        [JsonPropertyName("paging")] public Paging Paging { get; set; }
+        
+    }
+
+    public class Paging
+    {
+        [JsonPropertyName("total")] public int Total { get; set; }
+        [JsonPropertyName("offset")] public int Offset { get; set; }
+        [JsonPropertyName("limit")] public int Limit { get; set; }
     }
 
     public class MlOrder

@@ -1,20 +1,23 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@{
+	ViewData["Title"] = "Home Page";
+	Layout = "_Layout";
+}
+
 @{
 	<div class="text-center" style="margin-top: 1rem">
 		<h3>Itens mais vendidos</h3>
+	<p hidden id="workingMessage">Gerando relatório, aguarde. Dependendo de quantas vendas foram feitas isso pode demorar um pouco.</p>
 		<div class="row">
 			<div class="col">
 				<label for="dataInicioField">De: </label>
-				<input type="date" id="dataInicioField"/>
+				<input lang="pt-BR" type="date" id="dataInicioField"/>
 			</div>
 			<div class="col">
 				<label for="dataFimField">Até: </label>
-				<input type="date" id="dataFimField"/>
+				<input lang="pt-BR" type="date" id="dataFimField" />
 			</div>
 			<div class="col">
-				<button class="btn btn-primary" onclick="gerarRelatorio" id="gerarRelatorioButton">Gerar Relatório</button>
+				<button class="btn btn-primary" onClick="gerarRelatorio()" id="gerarRelatorioButton">Gerar Relatório</button>
 			</div>
 		</div>
 		<div>
@@ -31,4 +34,8 @@
 			</table>
 		</div>
 	</div>
+}
+
+@section Scripts{
+	<script src="~/js/geraReport.js"></script>
 }

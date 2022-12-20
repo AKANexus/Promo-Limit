@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Globalization;
+using Microsoft.AspNetCore.Mvc;
 using PromoLimit.Models;
 using PromoLimit.Services;
 
@@ -21,6 +22,7 @@ namespace PromoLimit.Controllers
 			return View();
 		}
 
+		private CultureInfo ptBR = new CultureInfo("pt-BR");
 
 		public async Task<IActionResult> GerarRelatorio(string? dataInicio, string? dataFim)
 		{
@@ -28,13 +30,13 @@ namespace PromoLimit.Controllers
 			var listOfSellers = await _mlDataService.GetAll();
 			if (listOfSellers.Count == 0)
 			{
-				return NoContent();
+				return Ok("No sellers found");
 			}
 
-			if (!DateTime.TryParse(dataInicio, out var startDate) ||
-				!DateTime.TryParse(dataFim, out var endDate))
+			if (!DateTime.TryParseExact(dataInicio,"yyyy-MM-dd" , ptBR, DateTimeStyles.None, out var startDate) ||
+				!DateTime.TryParseExact(dataFim, "yyyy-MM-dd", ptBR, DateTimeStyles.None, out var endDate))
 			{
-				return BadRequest();
+				return BadRequest($"As datas informadas {dataInicio} e {dataFim} não foram reconhecidas");
 			}
 			List<(MlOrder, MLInfo)> orders = new();
 			foreach (var seller in listOfSellers)
@@ -46,8 +48,8 @@ namespace PromoLimit.Controllers
 				}
 			}
 
-			if (orders.Count <= 0) return NoContent();
-			List<ReportClass> reportItself = new();
+			if (orders.Count <= 0) return Ok("No orders found");
+			List<ReportClass> firstList = new();
 
 			foreach (var tuple in orders)
 			{
@@ -56,16 +58,23 @@ namespace PromoLimit.Controllers
 					var tentativo = await _produtoDataService.GetByMlb(orderItem.Item.Id);
 					if (tentativo != null)
 					{
-						reportItself.Add(new ReportClass(tuple.Item2.Vendedor,
+						firstList.Add(new ReportClass(tuple.Item2.Vendedor,
 							tentativo.MLB,
 							tentativo.Descricao,
-							orderItem.Quantity.ToString()));
+							orderItem.Quantity));
 					}
 				}
 			}
 
+			List<ReportClass> reportItself = firstList.GroupBy(x => x.Mlb).Select(grouping => new ReportClass(grouping.First()
+						.Vendedor,
+					grouping.Key,
+					grouping.First()
+						.Descrição,
+					grouping.Sum(x => x.Vendidos)))
+				.ToList();
 
-			return Json(reportItself);
+			return Json(reportItself.OrderByDescending(x=>x.Vendidos).ThenBy(x=>x.Descrição));
 		}
 	}
 }
