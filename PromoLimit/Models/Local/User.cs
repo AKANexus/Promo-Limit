@@ -1,4 +1,4 @@
-﻿namespace PromoLimit.Models
+﻿namespace PromoLimit.Models.Local
 {
     public class User : EntityBase
     {

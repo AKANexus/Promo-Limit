@@ -1,8 +1,7 @@
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PromoLimit.DbContext;
-using PromoLimit.Models;
+using PromoLimit.Models.Local;
 using PromoLimit.Services;
 
 var builder = WebApplication.CreateBuilder(args);

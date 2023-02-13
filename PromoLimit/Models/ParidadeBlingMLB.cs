@@ -1,4 +1,6 @@
-﻿namespace PromoLimit.Models
+﻿using PromoLimit.Models.Local;
+
+namespace PromoLimit.Models
 {
     public class ParidadeBlingMLB : EntityBase
     {

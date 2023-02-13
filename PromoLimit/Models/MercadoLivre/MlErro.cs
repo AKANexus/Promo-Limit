@@ -1,7 +1,5 @@
 ﻿
-using System.Text.Json.Serialization;
-
-namespace PromoLimit.Models
+namespace PromoLimit.Models.MercadoLivre
 {
     public class ErrorBody
     {

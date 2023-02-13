@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace PromoLimit.Models
+﻿namespace PromoLimit.Models
 {
 	public class ReportClass
 	{

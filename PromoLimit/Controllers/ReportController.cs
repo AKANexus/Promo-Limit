@@ -1,11 +1,13 @@
 ﻿using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using PromoLimit.Models;
+using PromoLimit.Models.Local;
+using PromoLimit.Models.MercadoLivre;
 using PromoLimit.Services;
 
 namespace PromoLimit.Controllers
 {
-	public class ReportController : Controller
+    public class ReportController : Controller
 	{
 		private MlInfoDataService _mlDataService;
 		private MlApiService _mlApiService;

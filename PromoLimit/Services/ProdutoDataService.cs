@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PromoLimit.DbContext;
-using PromoLimit.Models;
+using PromoLimit.Models.Local;
 
 namespace PromoLimit.Services
 {
@@ -27,22 +27,18 @@ namespace PromoLimit.Services
             return await _context.Produtos.CountAsync();
         }
 
-        public async Task<List<Produto>> GetAllProdutosPaged(int recordsPerPage = 15, int pageNumber = 1, bool asNoTracking = true)
+        public async Task<List<Produto>> GetAllProdutosPaged(int recordsPerPage = 15, int pageNumber = 1, string? query = null, bool asNoTracking = true)
         {
-	        return asNoTracking switch
+	        var request = _context.Produtos.AsNoTracking();
+	        if (query is not null)
 	        {
-		        true => await _context.Produtos.AsNoTracking()
-			        .OrderBy(x => x.MLB)
-			        .Skip((pageNumber - 1) * recordsPerPage)
-			        .Take(recordsPerPage)
-			        .ToListAsync(),
-
-		        false => await _context.Produtos
-			        .OrderBy(x=>x.MLB)
-			        .Skip((pageNumber - 1) * recordsPerPage)
-			        .Take(recordsPerPage)
-			        .ToListAsync()
-	        };
+		        request = request.Where(x => x.MLB.Contains(query));
+	        }
+	        return await request
+		        .OrderBy(x => x.MLB)
+		        .Skip((pageNumber - 1) * recordsPerPage)
+		        .Take(recordsPerPage)
+		        .ToListAsync();
         }
 
         public async Task<Produto> AddOrUpdate(Produto produto)

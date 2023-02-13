@@ -1,8 +1,8 @@
-﻿using PromoLimit.Models;
+﻿using PromoLimit.Models.Local;
 
 namespace PromoLimit.Views.Home
 {
-	public class IndexViewModel
+    public class IndexViewModel
 	{
         public List<MLInfo> MlInfos { get; set; }
         public List<Produto> Produtos { get; set; }

@@ -4,6 +4,8 @@ var produtoIdField;
 var mlbField;
 var quantAVendaField;
 var estoqueField;
+var query = null;
+var queryField;
 
 $(document).ready(function () {
     myHeaders.append("Content-Type", "application/json");
@@ -12,9 +14,10 @@ $(document).ready(function () {
         keyboard: false
     });
     produtoIdField = document.getElementById("produtoIdField");
-    mlbField = document.getElementById("mlbField");
-    quantAVendaField = document.getElementById("quantAVendaField");
+    mlbField = document.getElementById("skuField");
+    quantAVendaField = document.getElementById("quantReservaField");
     estoqueField = document.getElementById("estoqueField");
+    queryField = document.getElementById("queryText");
 });
 
 async function GetData(pageNum = 1) {
@@ -23,7 +26,7 @@ async function GetData(pageNum = 1) {
         headers: myHeaders
     };
 
-    const get = await fetch(`/Home/GetDataPaged?recordsPerPage=15&pageNumber=${pageNum}`, requestOptions);
+    const get = await fetch(`/Home/GetDataPaged?recordsPerPage=15&pageNumber=${pageNum}&query=${query}`, requestOptions);
     if (get.status >= 400) {
         alert("Deu ruim");
         return;
@@ -34,6 +37,17 @@ async function GetData(pageNum = 1) {
 
 }
 
+function setQuery() {
+    query = queryField.value;
+    GetData();
+}
+
+function clearQuery() {
+    queryField.value = null;
+    query = null;
+    GetData();
+}
+
 function DrawTabela(data) {
     const tabela = document.getElementById("tableBody");
     tabela.innerHTML = null;
@@ -42,6 +56,7 @@ function DrawTabela(data) {
     });
     AtualizaPaginacao(data.currentPage, data.maxPages, data.recordsTotal, data.recordsPerPage);
 }
+
 
 function AtualizaPaginacao(pagAtual, maxPags, maxRecords, recordsPerPage) {
     const paginacaoArea = document.getElementById("paginationButtons");
@@ -127,7 +142,7 @@ async function deleteCurrentRow(rowNum, descricao) {
 async function gravarProduto(id = null) {
     let meuBody = {};
     meuBody.MLB = mlbField.value;
-    meuBody.Id = produtoIdField.value;
+    meuBody.Id = produtoIdField.value.length === 0 ? null : produtoIdField.value;
     meuBody.QuantidadeAVenda = quantAVendaField.value;
     meuBody.Estoque = estoqueField.value;
     meuBody.Ativo = true;

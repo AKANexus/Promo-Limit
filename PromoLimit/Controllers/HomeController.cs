@@ -2,18 +2,15 @@
 using PromoLimit.Models;
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-using PromoLimit.DbContext;
 using PromoLimit.Services;
 using PromoLimit.Views.Home;
-using RestSharp;
+using PromoLimit.Models.MercadoLivre;
+using PromoLimit.Models.Local;
 
 namespace PromoLimit.Controllers
 {
-	public class HomeController : Controller
+    public class HomeController : Controller
 	{
 		private readonly ILogger<HomeController> _logger;
 		private readonly SessionService _sessionService;
@@ -57,8 +54,10 @@ namespace PromoLimit.Controllers
 			{
 				return BadRequest();
 			}
+
+			if (string.IsNullOrEmpty(filteringModel.query) || filteringModel.query == "null") filteringModel.query = null;
 			var MlInfos = await _mlInfoDataService.GetAll();
-			var produtos = await _produtoDataService.GetAllProdutosPaged(filteringModel.recordsPerPage, filteringModel.pageNumber);
+			var produtos = await _produtoDataService.GetAllProdutosPaged(filteringModel.recordsPerPage, filteringModel.pageNumber, filteringModel.query);
 
 			List<SaveMlbEntryJson> entriesList = new();
 
@@ -90,12 +89,12 @@ namespace PromoLimit.Controllers
 
 		public class SaveMlbEntryJson
 		{
-			public int? Id { get; set; }
 			public string MLB { get; set; }
+			public int? Id { get; set; }
 			public string QuantidadeAVenda { get; set; }
+			public int? Estoque { get; set; }
 			public bool Ativo { get; set; }
 			public string? Descricao { get; set; }
-			public int? Estoque { get; set; }
 			public string? Seller { get; set; }
 		}
 
@@ -110,6 +109,8 @@ namespace PromoLimit.Controllers
 		{
 			if (produto is not null)
 			{
+				if (produto.MLB[..3] != "MLB")
+					produto.MLB = "MLB" + produto.MLB;
 				var consultaMl = await _mlApiService.GetProdutoFromMlb(produto.MLB);
 				if (!consultaMl.Item1)
 				{
@@ -182,7 +183,7 @@ namespace PromoLimit.Controllers
 				}
 			}
 
-			return Json(new { success = false, error = "Produto was null" });
+			return BadRequest(new { success = false, error = "Produto was null" });
 		}
 		[HttpDelete]
 		public async Task<IActionResult> RemoveMlbEntry([FromQuery] int id)

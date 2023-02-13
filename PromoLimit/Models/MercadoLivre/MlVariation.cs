@@ -1,8 +1,6 @@
-﻿using System.Text.Json.Serialization;
-
-namespace PromoLimit.Models
+﻿namespace PromoLimit.Models.MercadoLivre
 {
-// Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
+    // Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
     public class MlVariation
     {
         [JsonPropertyName("variations")]

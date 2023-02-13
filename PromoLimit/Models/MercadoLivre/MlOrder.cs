@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace PromoLimit.Models
+﻿namespace PromoLimit.Models.MercadoLivre
 {
     // Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
     public class Item
@@ -27,15 +25,15 @@ namespace PromoLimit.Models
     public class MlOrders
     {
         [JsonPropertyName("query")]
-	    public string Query { get; set; }
+        public string Query { get; set; }
         [JsonPropertyName("results")]
-	    public MlOrder[] Results { get; set; }
+        public MlOrder[] Results { get; set; }
         [JsonPropertyName("message")]
-	    public string Message { get; set; }
+        public string Message { get; set; }
         [JsonPropertyName("error")]
-	    public string Error { get; set; }
+        public string Error { get; set; }
         [JsonPropertyName("paging")] public Paging Paging { get; set; }
-        
+
     }
 
     public class Paging

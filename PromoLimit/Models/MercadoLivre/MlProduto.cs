@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace PromoLimit.Models
+﻿namespace PromoLimit.Models.MercadoLivre
 {
     // Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
     public class AttributeCombination
@@ -16,7 +14,7 @@ namespace PromoLimit.Models
 
         [JsonPropertyName("value_name")]
         public string ValueName { get; set; }
-        }
+    }
 
     public class ProdutoBody
     {
@@ -43,7 +41,7 @@ namespace PromoLimit.Models
         [JsonPropertyName("variations")]
         public List<Variation>? Variations { get; set; }
     }
-    
+
     public class Variation
     {
         [JsonPropertyName("id")]
@@ -57,7 +55,7 @@ namespace PromoLimit.Models
 
         [JsonPropertyName("available_quantity")]
         public int AvailableQuantity { get; set; }
-        
+
     }
-    
+
 }

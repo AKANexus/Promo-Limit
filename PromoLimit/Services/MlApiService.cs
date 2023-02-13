@@ -1,12 +1,11 @@
 ﻿using System.Text.Json;
 using PromoLimit.Controllers;
-using PromoLimit.Models;
+using PromoLimit.Models.MercadoLivre;
 using RestSharp;
-using RestSharp.Serializers;
 
 namespace PromoLimit.Services
 {
-	public class MlApiService
+    public class MlApiService
     {
         private readonly RestClient _client;
         private readonly MlInfoDataService _mlInfoDataService;

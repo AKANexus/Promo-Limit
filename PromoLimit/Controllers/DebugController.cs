@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PromoLimit.DbContext;
-using PromoLimit.Models;
 
 namespace PromoLimit.Controllers
 {
