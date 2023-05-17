@@ -6,45 +6,50 @@ namespace PromoLimit.Services
 {
     public class MlInfoDataService
     {
-        private readonly PromoLimitDbContext _context;
+	    private readonly IServiceProvider _provider;
 
-        public MlInfoDataService(PromoLimitDbContext context)
-        {
-            _context = context;
-        }
+
+	    public MlInfoDataService(IServiceProvider provider)
+	    {
+		    _provider = provider;
+	    }
 
         public async Task<List<MLInfo>> GetAll()
         {
-            return await _context.MlInfos.AsNoTracking().ToListAsync();
+	        using var scope = _provider.CreateScope();
+            return await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.AsNoTracking().ToListAsync();
         }
         public async Task<MLInfo?> GetByUserIdAsNoTracking(int userId)
         {
+	        using var scope = _provider.CreateScope();
             return true switch
             {
-                true => await _context.MlInfos.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId),
-                false => await _context.MlInfos.FirstOrDefaultAsync(x => x.UserId == userId)
+                true => await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId),
+                false => await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.FirstOrDefaultAsync(x => x.UserId == userId)
             };
         }
 
         public async Task DeleteInfo(int userId)
         {
-            var tentative = await _context.MlInfos.FirstOrDefaultAsync(x => x.UserId == userId);
+	        using var scope = _provider.CreateScope();
+            var tentative = await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.FirstOrDefaultAsync(x => x.UserId == userId);
             if (tentative != null)
             {
-                _context.Remove(tentative);
-                await _context.SaveChangesAsync();
+                scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Remove(tentative);
+                await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().SaveChangesAsync();
             }
         }
 
         public async Task AddOrUpdateMlInfo(MLInfo info)
         {
+	        using var scope = _provider.CreateScope();
             var tentative = await GetByUserIdAsNoTracking(info.UserId);
             if (tentative is not null)
             {
                 info.Id = tentative.Id;
             }
-            _context.MlInfos.Update(info);
-            await _context.SaveChangesAsync();
+            scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.Update(info);
+            await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().SaveChangesAsync();
         }
     }
 }
