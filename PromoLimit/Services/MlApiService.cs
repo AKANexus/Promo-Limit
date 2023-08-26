@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using PromoLimit.Controllers;
+using PromoLimit.Models.Local;
 using PromoLimit.Models.MercadoLivre;
 using RestSharp;
 
@@ -39,8 +40,8 @@ namespace PromoLimit.Services
 
 		public async Task<string?> RefreshToken(int userId)
 		{
-			var mlInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(userId);
-			var tokenXChange = await RefreshApiKey(mlInfo.RefreshToken);
+			MLInfo? mlInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(userId);
+			(bool success, TokenAuthResponse response, string error) tokenXChange = await RefreshApiKey(mlInfo.RefreshToken);
 
 			if (!tokenXChange.success || tokenXChange.response is null)
 			{
@@ -50,7 +51,7 @@ namespace PromoLimit.Services
 			{
 				try
 				{
-					var userInfo = await GetSellerName(tokenXChange.response.UserId);
+					(bool, string) userInfo = await GetSellerName(tokenXChange.response.UserId);
 
 					await _mlInfoDataService.AddOrUpdateMlInfo(new()
 					{
@@ -145,7 +146,7 @@ namespace PromoLimit.Services
 		public async Task<(bool, MlOrder?)> GetOrderInfo(long orderId, int sellerId, LoggingDataService logger)
 		{
 			_ = logger.LogInformation($"TRACE>> Getting order {orderId}", "GetOrderInfo");
-			var apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
+			MLInfo? apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
 			if (apiKeyInfo.ExpiryTime <= DateTime.Now)
 			{
 				_ = logger.LogInformation($"TRACE>> ApiToken venceu", "GetOrderInfo");
@@ -193,7 +194,7 @@ namespace PromoLimit.Services
 		public async Task<(bool, List<MlOrder>?, string?)> GetOrdersBetweenDates(int sellerId, DateTime start, DateTime end)
 		{
 			List<MlOrder> orders = new();
-			var apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
+			MLInfo? apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
 			if (apiKeyInfo.ExpiryTime <= DateTime.Now)
 			{
 				await RefreshToken(sellerId);
@@ -271,7 +272,7 @@ namespace PromoLimit.Services
 
 		public async Task<(bool, string?)> AtualizaEstoqueDisponivel(string mlb, int estoqueDisponivel, int sellerId, long? variacao, LoggingDataService logger)
 		{
-			var apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
+			MLInfo? apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
 			if (apiKeyInfo.ExpiryTime <= DateTime.Now)
 			{
 				var error = await RefreshToken(sellerId);
@@ -301,7 +302,7 @@ namespace PromoLimit.Services
 				request.AddJsonBody(mlvar);
 			}
 
-			var response = await _client.ExecutePutAsync(request);
+			RestResponse response = await _client.ExecutePutAsync(request);
 
 			if (!response.IsSuccessful)
 			{

@@ -20,8 +20,9 @@ namespace PromoLimit.Controllers
 		private readonly MlInfoDataService _mlInfoDataService;
 		private readonly ProdutoDataService _produtoDataService;
 		private readonly MlApiService _mlApiService;
+        private readonly TinyApi _tinyApiService;
 
-		public HomeController(IServiceProvider provider)
+        public HomeController(IServiceProvider provider)
 		{
 			_provider = provider;
 
@@ -31,7 +32,8 @@ namespace PromoLimit.Controllers
 			_mlInfoDataService = provider.GetRequiredService<MlInfoDataService>();
 			_produtoDataService = provider.GetRequiredService<ProdutoDataService>();
 			_mlApiService = provider.GetRequiredService<MlApiService>();
-			CallbackEvent += async (sender, args) => await RunCallbackChecks(args.Notification, provider);
+			_tinyApiService = provider.GetRequiredService<TinyApi>();
+            CallbackEvent += async (sender, args) => await RunCallbackChecks(args.Notification, provider);
 		}
 
 		public async Task<IActionResult> Index()
@@ -274,15 +276,16 @@ namespace PromoLimit.Controllers
 		public delegate void CallbackEventHandler(object sender, CallbackEventArgs e);
 
 		public async Task RunCallbackChecks(OrdersV2Notification notification, IServiceProvider provider)
-		{
+        {
+            Guid operation = Guid.NewGuid();
 			try
 			{
-				await _logger.LogTrace("Running Callback Checks", "RunCallbackChecks");
-				await _logger.LogTrace(JsonSerializer.Serialize(notification), "RunCallbackChecks");
+				await _logger.LogTrace("Running Callback Checks", $"RunCallbackChecks ({operation})");
+				await _logger.LogTrace(JsonSerializer.Serialize(notification), $"RunCallbackChecks ({operation})");
 			}
 			catch (Exception e)
 			{
-				await _logger.LogError(e.Message, "RunCallbackChecks");
+				await _logger.LogError(e.Message, $"RunCallbackChecks ({operation})");
 				throw;
 			}
 			
@@ -303,21 +306,21 @@ namespace PromoLimit.Controllers
 						 long.Parse(notification.Resource.Split('/')[notification.Resource.Split('/').Length - 1]), notification.UserId, _logger);
 					if (!order.Item1)
 					{
-						await _logger.LogInformation($"order.Item1 was false", "RunCallbackChecks");
+						await _logger.LogInformation($"order.Item1 was false", $"RunCallbackChecks ({operation})");
 
 						return;
 					}
 					if (order.Item2.Status != "paid")
 					{
-						await _logger.LogInformation($"order.Item2.status was not paid", "RunCallbackChecks");
+						await _logger.LogInformation($"order.Item2.status was not paid", $"RunCallbackChecks ({operation})");
 
 						return;
 					}
-					await _logger.LogInformation($"TRACE>> itens: {order.Item2.OrderItems.Count}", "RunCallbackChecks");
+					await _logger.LogInformation($"TRACE>> itens: {order.Item2.OrderItems.Count}", $"RunCallbackChecks ({operation})");
 
 					foreach (OrderItem orderItem in order.Item2.OrderItems)
 					{
-						await _logger.LogInformation($"TRACE>> orderItem: {orderItem.Item.Id}, variation: {orderItem.Item.VariationId.ToString() ?? "--"}", "RunCallbackChecks");
+						await _logger.LogInformation($"TRACE>> orderItem: {orderItem.Item.Id}, variation: {orderItem.Item.VariationId.ToString() ?? "--"}", $"RunCallbackChecks ({operation})");
 
 						Produto? prodTentativo;
 						if (orderItem.Item.VariationId is not null && orderItem.Item.VariationId != 0)
@@ -332,30 +335,76 @@ namespace PromoLimit.Controllers
 
 						if (prodTentativo is null) continue;
 
-						await _logger.LogInformation($"TRACE>> tentativo was not null", "RunCallbackChecks");
+						await _logger.LogInformation($"TRACE>> tentativo was not null", $"RunCallbackChecks ({operation})");
 
 						var mlItem = await _mlApiService.GetProdutoFromMlb(prodTentativo.MLB);
-						await _logger.LogInformation($"TRACE>> mlItem encontrado: {mlItem.Item2.Title}", "RunCallbackChecks");
+						await _logger.LogInformation($"TRACE>> mlItem encontrado: {mlItem.Item2.Title}", $"RunCallbackChecks ({operation})");
 						if (mlItem.Item1 && mlItem.Item2.AvailableQuantity == prodTentativo.QuantidadeAVenda)
 						{
-							await _logger.LogInformation($"TRACE>> mlItem.Item2.AvailableQuantity == prodTentativo.QuantidadeAVenda", "RunCallbackChecks");
+							await _logger.LogInformation($"TRACE>> mlItem.Item2.AvailableQuantity == prodTentativo.QuantidadeAVenda", $"RunCallbackChecks ({operation})");
 
 							return;
 						}
 
+                        try
+                        {
+							var sku = mlItem.Item2.Attributes?.FirstOrDefault(x => x.Id == "SELLER_SKU");
+							if (sku != null)
+							{
+								await _logger.LogTrace($"SKU {sku.ValueName}", $"RunCallbackChecks ({operation})");
+								var tinyTentative = await _tinyApiService.ProcuraEstoquePorCodigo(sku.ValueName);
+								if (tinyTentative is not null)
+								{
+									await _logger.LogTrace($"Existe um produto no Tiny com esse SKU ({sku.ValueName}). Vamos verificar o estoque", $"RunCallbackChecks ({operation})");
+
+                                    var saldo = (int?)tinyTentative["saldo"];
+                                    if (saldo is null)
+                                    {
+                                        await _logger.LogTrace(
+                                            $"Houve um erro ao puxar estoque do Tiny.\n[\"saldo\"] era nulo.\nIgnorando...",
+                                            $"RunCallbackChecks ({operation})");
+                                    }
+									else
+                                    {
+                                        await _logger.LogTrace($"Saldo no Tiny: {saldo}",
+                                            $"RunCallbackChecks ({operation})");
+                                        prodTentativo.Estoque = (int) saldo;
+                                    }
+                                }
+                                else
+                                {
+                                    await _logger.LogTrace(
+                                        $"Não existe um produto no Tiny com esse SKU ({sku.ValueName}).\nIgnorando...",
+                                        $"RunCallbackChecks ({operation})");
+                                }
+
+							}
+                            else
+                            {
+                                await _logger.LogTrace($"SKU era nulo",
+                                    $"RunCallbackChecks ({operation})");
+                            }
+						}
+                        catch (Exception e)
+                        {
+                            await _logger.LogError($"Houve um erro ao puxar estoque do Tiny.\n{e.Message}\nIgnorando...",
+                                $"RunCallbackChecks ({operation})");
+                        }
+                       
+
 						if (prodTentativo.Estoque < prodTentativo.QuantidadeAVenda)
 						{
-							await _logger.LogInformation($"TRACE>> Não há estoque o bastante para repor na venda", "RunCallbackChecks");
+							await _logger.LogInformation($"TRACE>> Não há estoque {prodTentativo.Estoque} o bastante para repor na venda", $"RunCallbackChecks ({operation})");
 							return;
 						}
 
 						if (prodTentativo.Estoque >= prodTentativo.QuantidadeAVenda)
 						{
-							await _logger.LogInformation("Atualizando estoque no ML", "RunCallbackChecks");
-							await _logger.LogInformation($"prodTentativo.MLB: {prodTentativo.MLB}", "RunCallbackChecks");
-							await _logger.LogInformation($"prodTentativo.QuantidadeAVenda: {prodTentativo.QuantidadeAVenda}", "RunCallbackChecks");
-							await _logger.LogInformation($"notification.UserId: {notification.UserId}", "RunCallbackChecks");
-							await _logger.LogInformation($"prodTentativo.Variacao: {prodTentativo.Variacao}", "RunCallbackChecks");
+							await _logger.LogInformation("Atualizando estoque no ML", $"RunCallbackChecks ({operation})");
+							await _logger.LogInformation($"prodTentativo.MLB: {prodTentativo.MLB}", $"RunCallbackChecks ({operation})");
+							await _logger.LogInformation($"prodTentativo.QuantidadeAVenda: {prodTentativo.QuantidadeAVenda}", $"RunCallbackChecks ({operation})");
+							await _logger.LogInformation($"notification.UserId: {notification.UserId}", $"RunCallbackChecks ({operation})");
+							await _logger.LogInformation($"prodTentativo.Variacao: {prodTentativo.Variacao}", $"RunCallbackChecks ({operation})");
 
 							await _mlApiService.AtualizaEstoqueDisponivel(prodTentativo.MLB,
 								prodTentativo.QuantidadeAVenda,
@@ -366,18 +415,18 @@ namespace PromoLimit.Controllers
 						prodTentativo.Estoque -= orderItem.Quantity;
 
 
-						await _logger.LogInformation($"TRACE>> Estoque:{prodTentativo.Estoque}, OrderQuant: {orderItem.Quantity}", "RunCallbackChecks");
+						await _logger.LogInformation($"TRACE>> Estoque:{prodTentativo.Estoque}, OrderQuant: {orderItem.Quantity}", $"RunCallbackChecks ({operation})");
 						await _produtoDataService.AddOrUpdate(prodTentativo);
 					}
 				}
 				else
 				{
-					await _logger.LogWarning("Usuário do ML não cadastrado, pulando notificação", "RunCallbackChecks");
+					await _logger.LogWarning("Usuário do ML não cadastrado, pulando notificação", $"RunCallbackChecks ({operation})");
 				}
 			}
 			catch (Exception e)
 			{
-				await _logger.LogError(e.Message, "RunCallbackChecks");
+				await _logger.LogError(e.Message, $"RunCallbackChecks ({operation})");
 			}
 		}
 

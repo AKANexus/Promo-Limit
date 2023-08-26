@@ -24,10 +24,10 @@ builder.Services.AddSession(opts =>
 NpgsqlConnectionStringBuilder csb = new()
 {
 	Database = "promolimit",
-	Port = 5432,
-    Username = "sysdba",
-    Password = "!qwer2846!",
-    Host = "promolimit.postgres.database.azure.com"
+	Port = 5351,
+    Username = "promolimitDBA",
+    Password = "gN810BEkbbRI",
+    Host = "tinformatica.dyndns.org"
 
 };
 Action<DbContextOptionsBuilder> configureDbContext = c =>
@@ -46,6 +46,7 @@ builder.Services.AddSingleton<ProdutoDataService>();
 builder.Services.AddScoped<JsonWebToken>();
 builder.Services.AddSingleton<MlInfoDataService>();
 builder.Services.AddScoped<MlApiService>();
+builder.Services.AddScoped<TinyApi>();
 builder.Services.AddSingleton<LoggingDataService>();
 
 var app = builder.Build();

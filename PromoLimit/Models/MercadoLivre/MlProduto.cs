@@ -40,6 +40,22 @@
 
         [JsonPropertyName("variations")]
         public List<Variation>? Variations { get; set; }
+
+        [JsonPropertyName("attributes")]
+        public List<MlAttribute>? Attributes { get; set; }
+    }
+
+    public class MlAttribute
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("value_name")]
+        public string ValueName { get; set; }
+
     }
 
     public class Variation
