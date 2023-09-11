@@ -1,76 +1,83 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PromoLimit.DbContext;
-using PromoLimit.Models;
+using PromoLimit.Models.Local;
 
 namespace PromoLimit.Services
 {
     public class ProdutoDataService
     {
-        private readonly PromoLimitDbContext _context;
-
-        public ProdutoDataService(IServiceProvider provider)
-        {
-            _context = provider.GetRequiredService<PromoLimitDbContext>();
-        }
+	    private readonly IServiceProvider _provider;
 
 
+	    public ProdutoDataService(IServiceProvider provider)
+	    {
+		    _provider = provider;
+	    }
+        
         public async Task<List<Produto>> GetAllProdutos(bool asNoTracking = true)
         {
+	        using var scope = _provider.CreateScope();
             return asNoTracking switch
             {
-                true => await _context.Produtos.AsNoTracking().OrderBy(x=>x.MLB).ToListAsync(),
-                false => await _context.Produtos.OrderBy(x=>x.MLB).ToListAsync()
+                true => await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.AsNoTracking().OrderBy(x=>x.MLB).ToListAsync(),
+                false => await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.OrderBy(x=>x.MLB).ToListAsync()
             };
         }
 
         public async Task<int> CountProdutos()
         {
-            return await _context.Produtos.CountAsync();
+	        using var scope = _provider.CreateScope();
+            return await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.CountAsync();
         }
 
-        public async Task<List<Produto>> GetAllProdutosPaged(int recordsPerPage = 15, int pageNumber = 1, bool asNoTracking = true)
+        public async Task<List<Produto>> GetAllProdutosPaged(int recordsPerPage = 15, int pageNumber = 1, string? query = null, bool asNoTracking = true)
         {
-	        return asNoTracking switch
+	        using var scope = _provider.CreateScope();
+	        var request = scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.AsNoTracking();
+	        if (query is not null)
 	        {
-		        true => await _context.Produtos.AsNoTracking()
-			        .OrderBy(x => x.MLB)
-			        .Skip((pageNumber - 1) * recordsPerPage)
-			        .Take(recordsPerPage)
-			        .ToListAsync(),
-
-		        false => await _context.Produtos
-			        .OrderBy(x=>x.MLB)
-			        .Skip((pageNumber - 1) * recordsPerPage)
-			        .Take(recordsPerPage)
-			        .ToListAsync()
-	        };
+		        request = request.Where(x => x.MLB.Contains(query));
+	        }
+	        return await request
+		        .OrderBy(x => x.MLB)
+		        .Skip((pageNumber - 1) * recordsPerPage)
+		        .Take(recordsPerPage)
+		        .ToListAsync();
         }
 
         public async Task<Produto> AddOrUpdate(Produto produto)
         {
-            var tentativo = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == produto.Id);
+	        using var scope = _provider.CreateScope();
+            var tentativo = await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.FirstOrDefaultAsync(x => x.Id == produto.Id);
             if (tentativo == null)
             {
-                _context.Produtos.Update(produto);
+                scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.Update(produto);
             }
             else
             {
                 tentativo.QuantidadeAVenda = produto.QuantidadeAVenda;
                 tentativo.Estoque = produto.Estoque;
-                _context.Produtos.Update(tentativo);
+                scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.Update(tentativo);
             }
-            await _context.SaveChangesAsync();
+            await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().SaveChangesAsync();
             return produto;
         }
 
         public async Task Delete(int id)
         {
-            var tentativo = await _context.Produtos.FirstOrDefaultAsync(x => x.Id == id);
+	        using var scope = _provider.CreateScope();
+            var tentativo = await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.FirstOrDefaultAsync(x => x.Id == id);
             if (tentativo is not null)
             {
-                _context.Produtos.Remove(tentativo);
-                await _context.SaveChangesAsync();
+                scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos.Remove(tentativo);
+                await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().SaveChangesAsync();
             }
+        }
+
+        public async Task<Produto?> GetByMlb(string mlb)
+        {
+	        using var scope = _provider.CreateScope();
+	        return await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().Produtos!.AsNoTracking().FirstOrDefaultAsync(x => x.MLB == mlb);
         }
     }
 }

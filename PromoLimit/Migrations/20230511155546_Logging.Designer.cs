@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PromoLimit.DbContext;
@@ -11,9 +12,11 @@ using PromoLimit.DbContext;
 namespace PromoLimit.Migrations
 {
     [DbContext(typeof(PromoLimitDbContext))]
-    partial class PromoLimitDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230511155546_Logging")]
+    partial class Logging
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -127,9 +130,6 @@ namespace PromoLimit.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("DateTime")
-                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int>("LogSeverity")
                         .HasColumnType("integer");

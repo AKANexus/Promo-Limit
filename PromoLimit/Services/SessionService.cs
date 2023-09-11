@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using PromoLimit.Models;
+using PromoLimit.Models.Local;
 using PromoLimit.States;
 
 namespace PromoLimit.Services

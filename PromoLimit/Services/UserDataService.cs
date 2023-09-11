@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PromoLimit.DbContext;
-using PromoLimit.Models;
+using PromoLimit.Models.Local;
 
 namespace PromoLimit.Services
 {

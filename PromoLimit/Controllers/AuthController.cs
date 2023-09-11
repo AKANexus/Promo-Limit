@@ -1,8 +1,5 @@
-﻿using Microsoft.AspNetCore.Components.Web.Virtualization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+﻿using Microsoft.AspNetCore.Mvc;
 using PromoLimit.Services;
-using PromoLimit.States;
 using PromoLimit.Views.Auth;
 
 namespace PromoLimit.Controllers

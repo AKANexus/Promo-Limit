@@ -9,17 +9,16 @@
 	<h3>Lista de Produtos</h3>
 	<p>
 		<button class="btn btn-primary" onClick="addNewRow()">Adicionar novo produto</button>
-		<a class="btn btn-primary" href="https://auth.mercadolivre.com.br/authorization?response_type=code&client_id=5728494926210323&redirect_uri=https://promolimit.azurewebsites.net/Home/MlRedirect">Associar conta do ML</a>
-		<button class="btn btn-primary" onClick="acessarRelatorios()">Relatório</button>
+		@*<button class="btn btn-primary" onClick="acessarRelatorios()">Relatório</button>*@
 	</p>
 	@if (TempData["Error"] is not null)
 	{
 		<div style="color: red">@TempData["Error"]</div>
 	}
-		
-	
+
+
 	<div style="margin: 0.5rem">
-		<input type="text" id="queryText"/>
+		<input type="text" id="queryText" />
 		<button class="btn-secondary" onclick="setQuery()">🔎</button>
 		<button class="btn-secondary" onclick="clearQuery()">🧹</button>
 
@@ -27,14 +26,14 @@
 	<div style="margin-top: 1rem">
 		<table id="produtosTable" class="table table-bordered table-hover table-responsive" width="100%">
 			<thead>
-			<tr id="tableHeaders">
-				<th>Vendedor</th>
-				<th>MLB</th>
-				<th>Descrição</th>
-				<th>Quant.</th>
-				<th>Estoque</th>
-				<th>Ações</th>
-			</tr>
+				<tr id="tableHeaders">
+					<th>Vendedor</th>
+					<th>SKU</th>
+					<th>Descrição</th>
+					<th>Reserv.</th>
+					<th>Estoque</th>
+					<th>Ações</th>
+				</tr>
 			</thead>
 			<tbody id="tableBody"></tbody>
 		</table>
@@ -56,19 +55,19 @@
 			</div>
 			<div class="modal-body col">
 				<div class="col" style="height: 120px">
-					<input type="number" id="produtoIdField" hidden/>
+					<input type="number" id="produtoIdField" hidden />
 					<div class="form-group d-flex flex-column">
-						<label for="mlbField">MLB</label>
-						<input id="mlbField"/>
+						<label for="skuField">SKU</label>
+						<input id="skuField" />
 					</div>
 					<div class="form-group d-flex flex-column">
-						<label for="quantAVendaField">Quant. a Venda</label>
-						<input type="number" id="quantAVendaField"/>
+						<label for="quantReservaField">Quant. Reserva</label>
+						<input type="number" id="quantReservaField" />
 					</div>
-					<div class="form-group d-flex flex-column">
+@*					<div class="form-group d-flex flex-column">
 						<label for="estoqueField">Estoque</label>
-						<input id="estoqueField" type="number"/>
-					</div>
+						<input id="estoqueField" type="number" />
+					</div>*@
 				</div>
 			</div>
 			<div class="modal-footer" style="margin-top: 1rem">
@@ -80,7 +79,7 @@
 </div>
 
 @section Scripts{
-	<script src="~/js/homeInteractivity.js"></script>
+	<script src="~/js/reservaInteractivity.js"></script>
 }
 
 
