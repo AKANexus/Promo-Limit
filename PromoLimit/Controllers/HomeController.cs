@@ -37,7 +37,8 @@ namespace PromoLimit.Controllers
 		}
 
 		public async Task<IActionResult> Index()
-		{
+        {
+            //return RedirectPermanent("http://tinformatica.dyndns.org:5303/");
 			if (!_sessionService.IsSignedIn(HttpContext))
 			{
 				return RedirectToAction("Login", "Auth");
@@ -195,6 +196,64 @@ namespace PromoLimit.Controllers
 			return Json(new { success = true });
 		}
 
+        [HttpGet("verificaAnuncios")]
+        public async Task<IActionResult> VerificaAnunciosGet()
+        {
+            if (Verificando)
+            {
+                TempData["Error"] = "O sistema já está rodando a verificação dos itens. Tente novamente mais tarde";
+                return Ok(TempData["Error"]);
+            }
+            else
+            {
+                Verificando = true;
+                return View("VerificaAnuncios");
+            }
+        }
+
+        [HttpPost("verificaAnuncios")]
+        public async Task<IActionResult> VerificaAnunciosPost()
+        {
+            foreach (Produto prodTentativo in await _produtoDataService.GetAllProdutos(false))
+            {
+                try
+                {
+                    var mlItem = await _mlApiService.GetProdutoFromMlb(prodTentativo.MLB);
+                    if (mlItem.Item2 == null ||
+                        (mlItem.Item1 && mlItem.Item2?.AvailableQuantity == prodTentativo.QuantidadeAVenda))
+                    {
+                        continue;
+                    }
+
+
+                    int quantidadeASerReposta = prodTentativo.QuantidadeAVenda - mlItem.Item2!.AvailableQuantity;
+                    if (prodTentativo.Estoque < prodTentativo.QuantidadeAVenda)
+                    {
+                        continue;
+                    }
+
+                    if (prodTentativo.Estoque >= prodTentativo.QuantidadeAVenda)
+                    {
+                        await _mlApiService.AtualizaEstoqueDisponivel(prodTentativo.MLB,
+                            prodTentativo.QuantidadeAVenda,
+                            prodTentativo.Seller,
+                            prodTentativo.Variacao, _logger);
+                    }
+
+                    prodTentativo.Estoque -= quantidadeASerReposta;
+                    await _produtoDataService.AddOrUpdate(prodTentativo);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
+            Verificando = false;
+            return Ok();
+        }
+
+
 		public async Task<IActionResult> GetMlAccounts(string password)
 		{
 			if (password.Length > 0 && password == String.Format("{0}{1}{2}", DateTime.Now.ToString("dd"), DateTime.Now.ToString("HH"),
@@ -222,42 +281,42 @@ namespace PromoLimit.Controllers
 			}
 		}
 
-		public async Task<IActionResult> MlRedirect(string code)
-		{
-			if (!String.IsNullOrWhiteSpace(code))
-			{
-				var tokenXChange = await _mlApiService.XChangeCodeForToken(code);
+		//public async Task<IActionResult> MlRedirect(string code)
+		//{
+		//	if (!String.IsNullOrWhiteSpace(code))
+		//	{
+		//		var tokenXChange = await _mlApiService.XChangeCodeForToken(code);
 
-				if (!tokenXChange.Item1 || tokenXChange.Item2 is null)
-				{
-					throw new Exception("Response was not successful");
-				}
+		//		if (!tokenXChange.Item1 || tokenXChange.Item2 is null)
+		//		{
+		//			throw new Exception("Response was not successful");
+		//		}
 
-				try
-				{
-					var userInfo = await _mlApiService.GetSellerName(tokenXChange.Item2.UserId);
+		//		try
+		//		{
+		//			var userInfo = await _mlApiService.GetSellerName(tokenXChange.Item2.UserId);
 
-					await _mlInfoDataService.AddOrUpdateMlInfo(new()
-						{
-							AccessToken = tokenXChange.Item2.AccessToken,
-							RefreshToken = tokenXChange.Item2.RefreshToken,
-							UserId = tokenXChange.Item2.UserId,
-							Vendedor = userInfo.Item2,
-							ExpiryTime = DateTime.Now.AddSeconds(tokenXChange.Item2.ExpiresIn),
-						}
-					);
-				}
-				catch (Exception e)
-				{
-					Console.WriteLine(e);
-					throw;
-				}
+		//			await _mlInfoDataService.AddOrUpdateMlInfo(new()
+		//				{
+		//					AccessToken = tokenXChange.Item2.AccessToken,
+		//					RefreshToken = tokenXChange.Item2.RefreshToken,
+		//					UserId = tokenXChange.Item2.UserId,
+		//					Vendedor = userInfo.Item2,
+		//					ExpiryTime = DateTime.Now.AddSeconds(tokenXChange.Item2.ExpiresIn),
+		//				}
+		//			);
+		//		}
+		//		catch (Exception e)
+		//		{
+		//			Console.WriteLine(e);
+		//			throw;
+		//		}
 
-				return RedirectToAction("Index");
-			}
+		//		return RedirectToAction("Index");
+		//	}
 
-			throw new Exception("Code was null");
-		}
+		//	throw new Exception("Code was null");
+		//}
 
 		public IActionResult TraceTest(string message)
 		{
@@ -346,50 +405,50 @@ namespace PromoLimit.Controllers
 							return;
 						}
 
-                        try
-                        {
-							var sku = mlItem.Item2.Attributes?.FirstOrDefault(x => x.Id == "SELLER_SKU");
-							if (sku != null)
-							{
-								await _logger.LogTrace($"SKU {sku.ValueName}", $"RunCallbackChecks ({operation})");
-								var tinyTentative = await _tinyApiService.ProcuraEstoquePorCodigo(sku.ValueName);
-								if (tinyTentative is not null)
-								{
-									await _logger.LogTrace($"Existe um produto no Tiny com esse SKU ({sku.ValueName}). Vamos verificar o estoque", $"RunCallbackChecks ({operation})");
+      //                  try
+      //                  {
+						//	var sku = mlItem.Item2.Attributes?.FirstOrDefault(x => x.Id == "SELLER_SKU");
+						//	if (sku != null)
+						//	{
+						//		await _logger.LogTrace($"SKU {sku.ValueName}", $"RunCallbackChecks ({operation})");
+						//		var tinyTentative = await _tinyApiService.ProcuraEstoquePorCodigo(sku.ValueName);
+						//		if (tinyTentative is not null)
+						//		{
+						//			await _logger.LogTrace($"Existe um produto no Tiny com esse SKU ({sku.ValueName}). Vamos verificar o estoque", $"RunCallbackChecks ({operation})");
 
-                                    var saldo = (int?)tinyTentative["saldo"];
-                                    if (saldo is null)
-                                    {
-                                        await _logger.LogTrace(
-                                            $"Houve um erro ao puxar estoque do Tiny.\n[\"saldo\"] era nulo.\nIgnorando...",
-                                            $"RunCallbackChecks ({operation})");
-                                    }
-									else
-                                    {
-                                        await _logger.LogTrace($"Saldo no Tiny: {saldo}",
-                                            $"RunCallbackChecks ({operation})");
-                                        prodTentativo.Estoque = (int) saldo;
-                                    }
-                                }
-                                else
-                                {
-                                    await _logger.LogTrace(
-                                        $"Não existe um produto no Tiny com esse SKU ({sku.ValueName}).\nIgnorando...",
-                                        $"RunCallbackChecks ({operation})");
-                                }
+      //                              var saldo = (int?)tinyTentative["saldo"];
+      //                              if (saldo is null)
+      //                              {
+      //                                  await _logger.LogTrace(
+      //                                      $"Houve um erro ao puxar estoque do Tiny.\n[\"saldo\"] era nulo.\nIgnorando...",
+      //                                      $"RunCallbackChecks ({operation})");
+      //                              }
+						//			else
+      //                              {
+      //                                  await _logger.LogTrace($"Saldo no Tiny: {saldo}",
+      //                                      $"RunCallbackChecks ({operation})");
+      //                                  prodTentativo.Estoque = (int) saldo;
+      //                              }
+      //                          }
+      //                          else
+      //                          {
+      //                              await _logger.LogTrace(
+      //                                  $"Não existe um produto no Tiny com esse SKU ({sku.ValueName}).\nIgnorando...",
+      //                                  $"RunCallbackChecks ({operation})");
+      //                          }
 
-							}
-                            else
-                            {
-                                await _logger.LogTrace($"SKU era nulo",
-                                    $"RunCallbackChecks ({operation})");
-                            }
-						}
-                        catch (Exception e)
-                        {
-                            await _logger.LogError($"Houve um erro ao puxar estoque do Tiny.\n{e.Message}\nIgnorando...",
-                                $"RunCallbackChecks ({operation})");
-                        }
+						//	}
+      //                      else
+      //                      {
+      //                          await _logger.LogTrace($"SKU era nulo",
+      //                              $"RunCallbackChecks ({operation})");
+      //                      }
+						//}
+      //                  catch (Exception e)
+      //                  {
+      //                      await _logger.LogError($"Houve um erro ao puxar estoque do Tiny.\n{e.Message}\nIgnorando...",
+      //                          $"RunCallbackChecks ({operation})");
+      //                  }
                        
 
 						if (prodTentativo.Estoque < prodTentativo.QuantidadeAVenda)
@@ -432,7 +491,7 @@ namespace PromoLimit.Controllers
 
 		public IActionResult MlCallback([FromBody] OrdersV2Notification notification)
 		{
-			CallbackEvent?.Invoke(this, new() { Notification = notification });
+			//CallbackEvent?.Invoke(this, new() { Notification = notification });
 			return Ok();
 		}
 

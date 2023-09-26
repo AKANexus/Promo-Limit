@@ -1,4 +1,4 @@
-﻿using PromoLimit.DbContext;
+﻿using PromoLimit.Contexts;
 using PromoLimit.Models;
 
 namespace PromoLimit.Services

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using PromoLimit.DbContext;
+using PromoLimit.Contexts;
 using PromoLimit.Models.Local;
 
 namespace PromoLimit.Services
@@ -22,11 +22,12 @@ namespace PromoLimit.Services
         public async Task<MLInfo?> GetByUserIdAsNoTracking(int userId)
         {
 	        using var scope = _provider.CreateScope();
-            return true switch
+            return /*true switch
             {
-                true => await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId),
-                false => await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.FirstOrDefaultAsync(x => x.UserId == userId)
-            };
+                true => */
+                await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId);//,
+                //false => await scope.ServiceProvider.GetRequiredService<PromoLimitDbContext>().MlInfos.FirstOrDefaultAsync(x => x.UserId == userId)
+            //};
         }
 
         public async Task DeleteInfo(int userId)

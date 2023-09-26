@@ -1,0 +1,45 @@
+﻿<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+@{
+    Layout = "_Layout";
+}
+
+<div class="text-center">
+    <h3>Verificando anúncios</h3>
+    Por favor aguarde...
+    <p>
+        <img src="images/spinner.gif" alt="spinner" />
+    </p>
+</div>
+
+@section Scripts
+    {
+    <script type="text/javascript">
+        // Function to make a fetch request after the page has finished loading
+        window.addEventListener('load',
+            function () {
+                // Make a fetch request to your endpoint
+                fetch('/verificaAnuncios',
+                    {
+                        method: 'POST'
+                    })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            // If the response status is not okay (e.g., 404 or 500), handle it as an error
+                            throw new Error(`Network response was not ok: ${response.status}`);
+                        }
+                        return response;
+                    })
+                    .then(function () {
+                        // Redirect to another URL on success
+                        window.location.href = '/Home/Index';
+                    })
+                    .catch(function (error) {
+                        // Display an error message on failure
+                        alert('Error: ' + error.message);
+                    });
+            });
+    </script>
+}

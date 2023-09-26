@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MlSuite.EntityFramework.EntityFramework;
 using Npgsql;
-using PromoLimit.DbContext;
+using PromoLimit.Contexts;
 using PromoLimit.Models.Local;
 using PromoLimit.Services;
 
@@ -30,14 +32,29 @@ NpgsqlConnectionStringBuilder csb = new()
     Host = "tinformatica.dyndns.org"
 
 };
-Action<DbContextOptionsBuilder> configureDbContext = c =>
+
+NpgsqlConnectionStringBuilder mlEspelhoCsb = new NpgsqlConnectionStringBuilder
 {
-	c.UseNpgsql(csb.ConnectionString);
-	c.EnableSensitiveDataLogging(true);
-	c.EnableDetailedErrors(true);
+    Database = "meliEspelho",
+    Port = 5351,
+    Username = "meliDBA",
+    Password = builder.Configuration.GetSection("SuperSecretSettings")["NpgPassword"],
+    Host = "192.168.10.215"
 };
 
-builder.Services.AddDbContext<PromoLimitDbContext>(configureDbContext);
+builder.Services.AddDbContext<PromoLimitDbContext>(c =>
+{
+    c.UseNpgsql(csb.ConnectionString);
+    c.EnableSensitiveDataLogging();
+    c.EnableDetailedErrors();
+});
+
+builder.Services.AddDbContext<TrilhaDbContext>(c =>
+{
+    c.UseNpgsql(mlEspelhoCsb.ConnectionString);
+    c.EnableSensitiveDataLogging();
+    c.EnableDetailedErrors();
+});
 
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<UserDataService>();
@@ -48,10 +65,25 @@ builder.Services.AddSingleton<MlInfoDataService>();
 builder.Services.AddScoped<MlApiService>();
 builder.Services.AddScoped<TinyApi>();
 builder.Services.AddSingleton<LoggingDataService>();
+builder.Services.AddSingleton<PostgresNotificationService>();
+builder.Services.AddTransient<CallbackService>();
+
 
 var app = builder.Build();
+NotificationTask = app.Services.GetRequiredService<PostgresNotificationService>().MonitorForNotification();
 
+void OnNotificationReceived(object? o, NpgsqlNotificationEventArgs notificationArgs)
+{
+    var callbackService = app.Services.GetRequiredService<CallbackService>();
+    //Debugger.Break();
+    if (notificationArgs.Payload.Split('|')[1] == "Pedidos")
+    {
+        app.Services.GetRequiredService<PostgresNotificationService>().NotificationReceived -= OnNotificationReceived;
+        _ = callbackService.RunCallbackChecks(Guid.Parse(notificationArgs.Payload.Split('|')[2]));
+    }
+}
 
+app.Services.GetRequiredService<PostgresNotificationService>().NotificationReceived += OnNotificationReceived;
 
 using (var scope = app.Services.CreateScope())
 {

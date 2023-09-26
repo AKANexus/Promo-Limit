@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.EntityFrameworkCore;
-using PromoLimit.DbContext;
+using PromoLimit.Contexts;
 using PromoLimit.Models.Local;
 using PromoLimit.Services;
 
