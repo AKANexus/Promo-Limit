@@ -8,6 +8,6 @@
         public string Descricao { get; set; }
         public int Estoque { get; set; }
         public long? Variacao { get; set; }
-        public int Seller { get; set; }
+        public ulong Seller { get; set; }
     }
 }

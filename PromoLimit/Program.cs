@@ -29,7 +29,11 @@ NpgsqlConnectionStringBuilder csb = new()
 	Port = 5351,
     Username = "promolimitDBA",
     Password = "gN810BEkbbRI",
-    Host = "tinformatica.dyndns.org"
+    //#if DEBUG
+    Host = "192.168.10.215"
+    //#else
+    //                Host = "tinformatica.dyndns.org"
+    //#endif
 
 };
 
@@ -39,7 +43,11 @@ NpgsqlConnectionStringBuilder mlEspelhoCsb = new NpgsqlConnectionStringBuilder
     Port = 5351,
     Username = "meliDBA",
     Password = builder.Configuration.GetSection("SuperSecretSettings")["NpgPassword"],
+    //#if DEBUG
     Host = "192.168.10.215"
+    //#else
+    //                Host = "tinformatica.dyndns.org"
+    //#endif
 };
 
 builder.Services.AddDbContext<PromoLimitDbContext>(c =>

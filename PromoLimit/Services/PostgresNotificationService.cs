@@ -20,7 +20,11 @@ namespace PromoLimit.Services
                 Port = 5351,
                 Username = "meliDBA",
                 Password = configuration["SuperSecretSettings:NpgPassword"],
-                Host = "192.168.10.215"
+//#if DEBUG
+    Host = "192.168.10.215"
+//#else
+//                Host = "tinformatica.dyndns.org"
+//#endif
             };
         }
 

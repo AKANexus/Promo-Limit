@@ -149,7 +149,7 @@ namespace PromoLimit.Services
 
 		}
 
-		public async Task<(bool, MlOrder?)> GetOrderInfo(long orderId, int sellerId, LoggingDataService logger)
+		public async Task<(bool, MlOrder?)> GetOrderInfo(long orderId, ulong sellerId, LoggingDataService logger)
 		{
 			_ = logger.LogInformation($"TRACE>> Getting order {orderId}", "GetOrderInfo");
 			//MLInfo? apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
@@ -199,7 +199,7 @@ namespace PromoLimit.Services
 
 		}
 
-		public async Task<(bool, List<MlOrder>?, string?)> GetOrdersBetweenDates(int sellerId, DateTime start, DateTime end)
+		public async Task<(bool, List<MlOrder>?, string?)> GetOrdersBetweenDates(ulong sellerId, DateTime start, DateTime end)
 		{
 			List<MlOrder> orders = new();
             //MLInfo? apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
@@ -279,7 +279,7 @@ namespace PromoLimit.Services
 			}
 		}
 
-		public async Task<(bool, string?)> AtualizaEstoqueDisponivel(string mlb, int estoqueDisponivel, int sellerId, long? variacao, LoggingDataService logger)
+		public async Task<(bool, string?)> AtualizaEstoqueDisponivel(string mlb, int estoqueDisponivel, ulong sellerId, long? variacao, LoggingDataService logger)
 		{
             //MLInfo? apiKeyInfo = await _mlInfoDataService.GetByUserIdAsNoTracking(sellerId);
             //if (apiKeyInfo.ExpiryTime <= DateTime.Now)

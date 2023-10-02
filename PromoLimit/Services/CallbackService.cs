@@ -27,7 +27,7 @@ namespace PromoLimit.Services
             TrilhaDbContext context = scopedProvider.GetRequiredService<TrilhaDbContext>();
             Guid operation = Guid.NewGuid();
             var orderInfo = await context.Pedidos.AsNoTracking().FirstAsync(x => x.Uuid == orderGuid);
-            int userId = (int)orderInfo.SellerId;
+            ulong userId = orderInfo.SellerId;
             string orderId = orderInfo.Id.ToString();
             try
             {

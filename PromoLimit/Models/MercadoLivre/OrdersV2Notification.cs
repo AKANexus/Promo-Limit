@@ -9,7 +9,7 @@
         public string Resource { get; set; }
 
         [JsonPropertyName("user_id")]
-        public int UserId { get; set; }
+        public ulong UserId { get; set; }
 
         [JsonPropertyName("topic")]
         public string Topic { get; set; }

@@ -33,7 +33,7 @@
         public object Subtitle { get; set; }
 
         [JsonPropertyName("seller_id")]
-        public int SellerId { get; set; }
+        public ulong SellerId { get; set; }
 
         [JsonPropertyName("available_quantity")]
         public int AvailableQuantity { get; set; }

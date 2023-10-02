@@ -45,8 +45,8 @@ namespace PromoLimit.Controllers
 			}
 
 			IndexViewModel ivm = new();
-			ivm.Produtos = await _produtoDataService.GetAllProdutos();
-			ivm.MlInfos = await _mlInfoDataService.GetAll();
+			//ivm.Produtos = await _produtoDataService.GetAllProdutos();
+			//ivm.MlInfos = await _mlInfoDataService.GetAll();
 			if (TempData["Error"] is not null)
 			{
 				ivm.ErrorMessage = (string)TempData["Error"];
@@ -267,7 +267,7 @@ namespace PromoLimit.Controllers
 			}
 		}
 
-		public async Task<IActionResult> RemoveMlAccount(string password, int userId)
+		public async Task<IActionResult> RemoveMlAccount(string password, ulong userId)
 		{
 			if (password.Length > 0 && password == String.Format("{0}{1}{2}", DateTime.Now.ToString("dd"), DateTime.Now.ToString("HH"),
 					"8181"))
