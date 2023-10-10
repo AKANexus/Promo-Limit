@@ -81,7 +81,7 @@ namespace PromoLimit.Services
 					client_id = "5728494926210323",
 					client_secret = "8FipsohX5nBunPKnymueFoxjYOCaCXmx",
 					code,
-					redirect_uri = "https://promolimit.azurewebsites.net/Home/MlRedirect",
+					redirect_uri = "https://promolimit1.azurewebsites.net/Home/MlRedirect",
 				}
 			);
 
@@ -105,7 +105,7 @@ namespace PromoLimit.Services
 					client_id = "5728494926210323",
 					client_secret = "8FipsohX5nBunPKnymueFoxjYOCaCXmx",
 					refresh_token = refreshKey,
-					redirect_uri = "https://promolimit.azurewebsites.net/Home/MlRedirect",
+					redirect_uri = "https://promolimit1.azurewebsites.net/Home/MlRedirect",
 				}
 			);
 

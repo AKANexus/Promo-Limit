@@ -24,10 +24,10 @@ builder.Services.AddSession(opts =>
 NpgsqlConnectionStringBuilder csb = new()
 {
 	Database = "promolimit",
-	Port = 5351,
+	Port = 5432,
     Username = "promolimitDBA",
     Password = "gN810BEkbbRI",
-    Host = "tinformatica.dyndns.org"
+    Host = "promolimit1-postgres.postgres.database.azure.com"
 
 };
 Action<DbContextOptionsBuilder> configureDbContext = c =>
