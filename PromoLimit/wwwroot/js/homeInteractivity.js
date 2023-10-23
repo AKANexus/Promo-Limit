@@ -37,6 +37,14 @@ async function GetData(pageNum = 1) {
 
 }
 
+function handleKeyPress(event) {
+    if (event.keyCode === 13) {
+        event.preventDefault(); // Prevent the default form submission
+        // Call your JavaScript method here
+        setQuery();
+    }
+}
+
 function setQuery() {
     query = queryField.value;
     GetData();

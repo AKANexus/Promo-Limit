@@ -195,7 +195,64 @@ namespace PromoLimit.Controllers
 			return Json(new { success = true });
 		}
 
-		public async Task<IActionResult> GetMlAccounts(string password)
+        [HttpGet("verificaAnuncios")]
+        public async Task<IActionResult> VerificaAnunciosGet()
+        {
+            if (Verificando)
+            {
+                TempData["Error"] = "O sistema já está rodando a verificação dos itens. Tente novamente mais tarde";
+                return Ok(TempData["Error"]);
+            }
+            else
+            {
+                Verificando = true;
+                return View("VerificaAnuncios");
+            }
+        }
+
+        [HttpPost("verificaAnuncios")]
+        public async Task<IActionResult> VerificaAnunciosPost()
+        {
+            foreach (Produto prodTentativo in await _produtoDataService.GetAllProdutos(false))
+            {
+                try
+                {
+                    var mlItem = await _mlApiService.GetProdutoFromMlb(prodTentativo.MLB);
+                    if (mlItem.Item2 == null ||
+                        (mlItem.Item1 && mlItem.Item2?.AvailableQuantity == prodTentativo.QuantidadeAVenda))
+                    {
+                        continue;
+                    }
+
+
+                    int quantidadeASerReposta = prodTentativo.QuantidadeAVenda - mlItem.Item2!.AvailableQuantity;
+                    if (prodTentativo.Estoque < prodTentativo.QuantidadeAVenda)
+                    {
+                        continue;
+                    }
+
+                    if (prodTentativo.Estoque >= prodTentativo.QuantidadeAVenda)
+                    {
+                        await _mlApiService.AtualizaEstoqueDisponivel(prodTentativo.MLB,
+                            prodTentativo.QuantidadeAVenda,
+                            prodTentativo.Seller,
+                            prodTentativo.Variacao, _logger);
+                    }
+
+                    prodTentativo.Estoque -= quantidadeASerReposta;
+                    await _produtoDataService.AddOrUpdate(prodTentativo);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
+            Verificando = false;
+            return Ok();
+        }
+
+        public async Task<IActionResult> GetMlAccounts(string password)
 		{
 			if (password.Length > 0 && password == String.Format("{0}{1}{2}", DateTime.Now.ToString("dd"), DateTime.Now.ToString("HH"),
 					"8181"))
